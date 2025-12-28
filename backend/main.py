@@ -6,8 +6,14 @@ from ingestion import run_ingestion
 from agent import ClinicalAgent
 from pydantic import BaseModel
 import pandas as pd
+<<<<<<< HEAD
 import models
 from datetime import datetime
+=======
+from dotenv import load_dotenv
+
+load_dotenv()
+>>>>>>> 782bab7 (feat: Implement Scientific AI Agent with Gemini, fix ingestion, refine UI)
 
 Base.metadata.create_all(bind=engine)
 
@@ -118,15 +124,24 @@ def generate_report(db: Session = Depends(get_db)):
 async def ingest_file(file: UploadFile = File(...)):
     import shutil
     import os
+    from ingestion import DATA_DIR
     
-    file_location = f"backend/uploads/{file.filename}"
-    with open(file_location, "wb+") as file_object:
-        shutil.copyfileobj(file.file, file_object)
+    # Ensure DATA_DIR exists
+    if not os.path.exists(DATA_DIR):
+        os.makedirs(DATA_DIR)
     
-    # Trigger ingestion pipeline on this file
-    run_ingestion()
+    file_location = os.path.join(DATA_DIR, file.filename)
     
-    return {"message": f"Successfully ingested {file.filename}", "status": "processing"}
+    try:
+        with open(file_location, "wb+") as file_object:
+            shutil.copyfileobj(file.file, file_object)
+        
+        # Trigger ingestion pipeline
+        run_ingestion()
+        
+        return {"message": f"Successfully ingested {file.filename}", "status": "processing"}
+    except Exception as e:
+        return {"message": f"Error interacting with file: {str(e)}", "status": "error"}
 
 class CommentRequest(BaseModel):
     comment: str
