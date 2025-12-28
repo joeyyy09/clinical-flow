@@ -89,13 +89,13 @@ const Overview = ({ searchQuery }) => {
             className="bg-gradient-to-br from-blue-600 to-indigo-700 dark:from-blue-700 dark:to-indigo-900 text-white p-6 rounded-2xl shadow-lg flex flex-col justify-between"
          >
              <div>
-                <p className="text-blue-200 text-sm font-medium">Study Health Score</p>
+                <p className="text-blue-200 text-sm font-medium">Data Quality Index</p>
                 <h2 className="text-5xl font-bold mt-2">{score}<span className="text-2xl text-blue-300 font-normal">/100</span></h2>
              </div>
              <div className="mt-4 bg-white/20 h-2 rounded-full overflow-hidden">
                  <div className="bg-white h-full rounded-full transition-all duration-1000" style={{ width: `${score}%` }}></div>
              </div>
-             <p className="text-xs text-blue-200 mt-2">Based on SAE velocity & missing data</p>
+             <p className="text-xs text-blue-200 mt-2">DQI aggregates SAEs, Missing Pages & Latency</p>
          </motion.div>
 
          <MetricCard 

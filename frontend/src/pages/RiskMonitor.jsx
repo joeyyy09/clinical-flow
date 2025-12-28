@@ -3,15 +3,20 @@ import React, { useEffect, useState } from 'react';
 import { AlertTriangle, TrendingUp, Activity, CheckCircle, Search, Filter } from 'lucide-react';
 import { motion } from 'framer-motion';
 import Modal from '../components/Modal';
+import CommentModal from '../components/CommentModal';
+import SiteDetailsModal from '../components/SiteDetailsModal';
 
-const RiskMonitor = ({ searchQuery }) => {
+const RiskMonitor = ({ searchQuery = "" }) => {
   const [riskData, setRiskData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filterOpen, setFilterOpen] = useState(false);
   const [selectedStudy, setSelectedStudy] = useState('All');
+  const [commentModalOpen, setCommentModalOpen] = useState(false);
+  const [detailsModalOpen, setDetailsModalOpen] = useState(false);
+  const [selectedSite, setSelectedSite] = useState(null);
 
   useEffect(() => {
-    fetch('http://localhost:8000/analytics/risk-monitor')
+    fetch('http://127.0.0.1:8000/analytics/risk-monitor')
       .then(res => res.json())
       .then(data => {
           setRiskData(data);
@@ -21,15 +26,49 @@ const RiskMonitor = ({ searchQuery }) => {
   }, []);
 
   const filteredData = riskData.filter(site => {
+      if (!site) return false;
       const matchesSearch = 
-        site.site.toLowerCase().includes(searchQuery.toLowerCase()) || 
-        site.country.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        site.risk_level.toLowerCase().includes(searchQuery.toLowerCase());
+        (site.site?.toLowerCase().includes(searchQuery.toLowerCase()) || false) || 
+        (site.country?.toLowerCase().includes(searchQuery.toLowerCase()) || false) ||
+        (site.risk_level?.toLowerCase().includes(searchQuery.toLowerCase()) || false);
       
       const matchesStudy = selectedStudy === 'All' || site.study_id === selectedStudy;
       
       return matchesSearch && matchesStudy;
   });
+
+  /* Sorting Logic */
+  const [sortConfig, setSortConfig] = useState({ key: 'dqi', direction: 'ascending' });
+
+  const sortedData = React.useMemo(() => {
+    let sortableItems = [...filteredData];
+    if (sortConfig !== null) {
+      sortableItems.sort((a, b) => {
+        if (a[sortConfig.key] < b[sortConfig.key]) {
+          return sortConfig.direction === 'ascending' ? -1 : 1;
+        }
+        if (a[sortConfig.key] > b[sortConfig.key]) {
+          return sortConfig.direction === 'ascending' ? 1 : -1;
+        }
+        return 0;
+      });
+    }
+    return sortableItems;
+  }, [filteredData, sortConfig]);
+
+  const requestSort = (key) => {
+    let direction = 'ascending';
+    if (sortConfig.key === key && sortConfig.direction === 'ascending') {
+      direction = 'descending';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  /* Render Helper */
+  const getClassNamesFor = (name) => {
+    if (!sortConfig) return;
+    return sortConfig.key === name ? sortConfig.direction : undefined;
+  };
 
   const handleGenerateReport = async () => {
     try {
@@ -123,26 +162,60 @@ const RiskMonitor = ({ searchQuery }) => {
          </div>
          {filteredData.length > 0 ? (
              <table className="w-full text-sm text-left">
-                 <thead className="bg-slate-50 dark:bg-slate-900/50 text-slate-500 dark:text-slate-400 font-medium">
-                     <tr>
-                         <th className="px-6 py-3">Site ID</th>
-                         <th className="px-6 py-3">Country</th>
-                         <th className="px-6 py-3">Missing Pages</th>
-                         <th className="px-6 py-3">SAE Count</th>
-                         <th className="px-6 py-3">Risk Level</th>
-                         <th className="px-6 py-3">AI Recommendation</th>
-                     </tr>
-                 </thead>
+                  <thead className="bg-slate-50 dark:bg-slate-900/50 text-slate-500 dark:text-slate-400 font-medium">
+                      <tr>
+                          <th className="px-6 py-3 cursor-pointer" onClick={() => requestSort('site')}>
+                              Site ID {sortConfig.key === 'site' && (sortConfig.direction === 'ascending' ? '↑' : '↓')}
+                          </th>
+                          <th className="px-6 py-3">Country</th>
+                          <th className="px-6 py-3 text-center cursor-pointer" onClick={() => requestSort('dqi')}>
+                              Data Quality Index {sortConfig.key === 'dqi' && (sortConfig.direction === 'ascending' ? '↑' : '↓')}
+                          </th>
+                          <th className="px-6 py-3 cursor-pointer" onClick={() => requestSort('sae_count')}>
+                              SAE Count {sortConfig.key === 'sae_count' && (sortConfig.direction === 'ascending' ? '↑' : '↓')}
+                          </th>
+                          <th className="px-6 py-3 cursor-pointer" onClick={() => requestSort('protocol_deviations')}>
+                              Deviations {sortConfig.key === 'protocol_deviations' && (sortConfig.direction === 'ascending' ? '↑' : '↓')}
+                          </th>
+                          <th className="px-6 py-3 cursor-pointer" onClick={() => requestSort('query_resolution_rate')}>
+                              Query Rate {sortConfig.key === 'query_resolution_rate' && (sortConfig.direction === 'ascending' ? '↑' : '↓')}
+                          </th>
+                          <th className="px-6 py-3">Risk Level</th>
+                          <th className="px-6 py-3">AI Recommendation</th>
+                          <th className="px-6 py-3">Actions</th>
+                      </tr>
+                  </thead>
                  <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
-                     {filteredData.map((site, index) => (
+                     {sortedData.map((site, index) => (
                          <motion.tr 
                             initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: index * 0.05 }}
                             key={index} className="hover:bg-slate-50/80 dark:hover:bg-slate-700/50 transition-colors"
                          >
                              <td className="px-6 py-4 font-medium text-slate-700 dark:text-slate-200">{site.site}</td>
                              <td className="px-6 py-4 text-slate-500 dark:text-slate-400">{site.country}</td>
-                             <td className="px-6 py-4 text-slate-500 dark:text-slate-400">{site.missing_pages}</td>
-                             <td className="px-6 py-4 text-slate-500 dark:text-slate-400">{site.sae_count}</td>
+                             <td className="px-6 py-4 text-center">
+                                 <div className="inline-flex flex-col items-center">
+                                     <span className={`text-lg font-bold ${
+                                         (site.dqi || 0) < 50 ? 'text-rose-500' : (site.dqi || 0) < 80 ? 'text-amber-500' : 'text-emerald-500'
+                                     }`}>
+                                         {site.dqi || 'N/A'}
+                                     </span>
+                                     <span className="text-[10px] text-slate-400">/100</span>
+                                 </div>
+                             </td>
+                             <td className="px-6 py-4 text-slate-500 dark:text-slate-400 font-medium">{site.sae_count}</td>
+                             <td className="px-6 py-4 text-slate-500 dark:text-slate-400">{site.protocol_deviations || '0'}</td>
+                             <td className="px-6 py-4">
+                                <div className="flex items-center gap-2">
+                                    <div className="w-16 h-1.5 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
+                                        <div 
+                                            className={`h-full rounded-full ${site.query_resolution_rate < 70 ? 'bg-amber-500' : 'bg-emerald-500'}`} 
+                                            style={{ width: `${site.query_resolution_rate || 0}%` }}
+                                        />
+                                    </div>
+                                    <span className="text-xs text-slate-500">{site.query_resolution_rate || 0}%</span>
+                                </div>
+                             </td>
                              <td className="px-6 py-4">
                                  <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
                                      site.risk_level === 'High' ? 'bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400' :
@@ -153,6 +226,22 @@ const RiskMonitor = ({ searchQuery }) => {
                                  </span>
                              </td>
                              <td className="px-6 py-4 text-slate-500 dark:text-slate-400 text-xs italic">{site.recommendation}</td>
+                              <td className="px-6 py-4">
+                                 <div className="flex flex-col gap-2">
+                                     <button 
+                                         onClick={() => { setSelectedSite(site.site); setCommentModalOpen(true); }}
+                                         className="text-blue-600 hover:text-blue-800 text-xs font-medium underline text-left"
+                                     >
+                                         Review / Comment
+                                     </button>
+                                     <button 
+                                         onClick={() => { setSelectedSite(site.site); setDetailsModalOpen(true); }}
+                                         className="text-indigo-600 hover:text-indigo-800 text-xs font-medium underline text-left"
+                                     >
+                                         View Patients
+                                     </button>
+                                 </div>
+                             </td>
                          </motion.tr>
                      ))}
                  </tbody>
@@ -186,6 +275,18 @@ const RiskMonitor = ({ searchQuery }) => {
               ))}
           </div>
       </Modal>
+
+      <CommentModal 
+          isOpen={commentModalOpen} 
+          onClose={() => setCommentModalOpen(false)} 
+          siteNumber={selectedSite} 
+      />
+
+      <SiteDetailsModal
+            isOpen={detailsModalOpen}
+            onClose={() => setDetailsModalOpen(false)}
+            siteNumber={selectedSite}
+      />
     </div>
   );
 };

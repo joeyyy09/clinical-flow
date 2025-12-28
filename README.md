@@ -8,6 +8,19 @@
 
 Built for speed, accuracy, and compliance, ClinicalFlow ingests clinical data (EDC, Safety, Lab), analyzes it for risk patterns (SAE velocity, missing data), and empowers clinical leads to take immediate action—all from a single, unified interface.
 
+### 🗺️ User Journey
+```mermaid
+graph LR
+    Login(Login) --> Monitor[Risk Monitor]
+    
+    Monitor -->|Drill Down| Detail[Site Details]
+    Monitor -->|Filter| Search[Search & Sort]
+    Monitor -->|Insight| AI[Ask AI Agent]
+    
+    Monitor -->|Action| Comment[Add Comment]
+    Monitor -->|Export| Report[Generate PDF]
+```
+
 ## ✨ Key Features
 
 - **🛡️ Real-Time Risk Monitor:** Automatically aggregates data from multiple sources to calculate Site Risk Scores.

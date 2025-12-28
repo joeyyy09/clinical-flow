@@ -6,6 +6,8 @@ from ingestion import run_ingestion
 from agent import ClinicalAgent
 from pydantic import BaseModel
 import pandas as pd
+import models
+from datetime import datetime
 
 Base.metadata.create_all(bind=engine)
 
@@ -13,7 +15,7 @@ app = FastAPI(title="Clinical Trial Insights")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*", "http://localhost:5173", "http://127.0.0.1:5173"], # Allow all origins for hackathon demo
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -87,11 +89,21 @@ def generate_report(db: Session = Depends(get_db)):
     # Calculate summary stats for the report
     high_risk = len([r for r in risk_data if r['risk_level'] == 'High'])
     
+    # Generate AI Narrative
+    # Use the agent to create a natural language summary
+    try:
+        from main import agent
+        summary_prompt = f"Summarize the risk status for {len(risk_data)} clinical sites. There are {high_risk} high risk sites. The average DQI is {sum(r['dqi'] for r in risk_data)/len(risk_data):.1f}."
+        ai_summary = agent.query(summary_prompt).get('answer', '')
+    except:
+        ai_summary = None
+
     report_context = {
         "study_id": "CT-2024-001", # Mock context
         "sites": risk_data,
         "site_count": len(risk_data),
-        "high_risk_count": high_risk
+        "high_risk_count": high_risk,
+        "executive_summary": ai_summary
     }
     
     pdf_buffer = generate_pdf_report(report_context)
@@ -115,5 +127,32 @@ async def ingest_file(file: UploadFile = File(...)):
     run_ingestion()
     
     return {"message": f"Successfully ingested {file.filename}", "status": "processing"}
+
+class CommentRequest(BaseModel):
+    comment: str
+    author: str
+    tag: str = "Info"
+
+@app.post("/sites/{site_number}/comment")
+def add_site_comment(site_number: str, request: CommentRequest, db: Session = Depends(get_db)):
+    db_comment = models.SiteComment(
+        site_number=site_number,
+        comment=request.comment,
+        tag=request.tag,
+        author=request.author,
+        created_at=datetime.now()
+    )
+    db.add(db_comment)
+    db.commit()
+    return {"status": "success", "message": "Comment added"}
+
+@app.get("/sites/{site_number}/comments")
+def get_site_comments(site_number: str, db: Session = Depends(get_db)):
+    return db.query(models.SiteComment).filter(models.SiteComment.site_number == site_number).all()
+
+@app.get("/sites/{site_number}/patients")
+def get_site_patients(site_number: str, db: Session = Depends(get_db)):
+    from analytics import get_site_patients_data
+    return get_site_patients_data(db, site_number)
 
 

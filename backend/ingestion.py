@@ -98,19 +98,29 @@ def ingest_edc_metrics(db: Session, filepath: str):
 
 def run_ingestion():
     db = SessionLocal()
-    # Recursive walk
-    for root, dirs, files in os.walk(DATA_DIR):
-        for file in files:
-            full_path = os.path.join(root, file)
-            if file.startswith("~$"): continue # Skip temp files
+    
+    # Define directories to scan
+    scan_dirs = [DATA_DIR, os.path.join(os.getcwd(), "uploads")]
+    
+    for directory in scan_dirs:
+        if not os.path.exists(directory):
+            print(f"Directory not found, skipping: {directory}")
+            continue
             
-            if "SAE Dashboard" in file or "eSAE" in file:
-                ingest_sae_metrics(db, full_path)
-            elif "Global_Missing_Pages" in file:
-                ingest_missing_pages(db, full_path)
-            elif "EDC_Metrics" in file:
-                ingest_edc_metrics(db, full_path)
-            # Add more handlers as needed
+        print(f"Scanning directory: {directory}")
+        # Recursive walk
+        for root, dirs, files in os.walk(directory):
+            for file in files:
+                full_path = os.path.join(root, file)
+                if file.startswith("~$") or file.startswith("."): continue # Skip temp/hidden files
+                
+                if "SAE Dashboard" in file or "eSAE" in file:
+                    ingest_sae_metrics(db, full_path)
+                elif "Global_Missing_Pages" in file:
+                    ingest_missing_pages(db, full_path)
+                elif "EDC_Metrics" in file:
+                    ingest_edc_metrics(db, full_path)
+                # Add more handlers as needed
             
     db.close()
 

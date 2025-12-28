@@ -21,9 +21,11 @@ class ClinicalAgent:
             return self.analyze_sae()
         elif "count" in user_query or "summary" in user_query:
             return self.get_summary()
+        elif "underperforming" in user_query or "worst sites" in user_query or "risk" in user_query:
+            return self.identify_underperformers()
         else:
             return {
-                "answer": "I can currently help you with Missing Pages analysis, SAE metrics, and general study summaries. Please ask about one of those topics!",
+                "answer": "I can help with: Missing Pages analysis, SAE metrics, Study Summaries, and identifying Underperforming Sites. Try asking 'Which sites are underperforming?'",
                 "data": []
             }
 
@@ -79,4 +81,29 @@ class ClinicalAgent:
                 {"Metric": "Missing Pages", "Value": int(missing_count)},
                 {"Metric": "EDC Metrics", "Value": int(edc_count)}
             ]
+        }
+
+    def identify_underperformers(self):
+        # Join logic to find sites with high missing pages or high SAEs
+        df = pd.read_sql("""
+            SELECT site_number, count(*) as missing_cnt 
+            FROM missing_pages 
+            GROUP BY site_number 
+            ORDER BY missing_cnt DESC 
+            LIMIT 5
+        """, self.engine)
+        
+        if df.empty:
+             return {"answer": "No underperforming sites detected based on current data.", "data": []}
+             
+        sites = df['site_number'].tolist()
+        counts = df['missing_cnt'].tolist()
+        
+        insight = f"The top 5 underperforming sites based on Missing Data Volume are: {', '.join(sites)}. Site {sites[0]} is critical with {counts[0]} missing pages."
+        
+        return {
+            "answer": insight,
+            "data": df.to_dict(orient="records"),
+            "chart_type": "bar",
+            "chart_data": dict(zip(sites, counts))
         }

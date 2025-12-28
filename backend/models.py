@@ -45,3 +45,12 @@ class EDCMetrics(Base):
     subject_id = Column(String)
     subject_status = Column(String)
     latest_visit = Column(String)
+
+class SiteComment(Base):
+    __tablename__ = "site_comments"
+    id = Column(Integer, primary_key=True, index=True)
+    site_number = Column(String, index=True)
+    comment = Column(String)
+    tag = Column(String, default="Info")
+    author = Column(String)
+    created_at = Column(DateTime)

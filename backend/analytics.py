@@ -41,6 +41,32 @@ def calculate_study_health_score(db: Session, study_id: str = None):
     final_score = (sae_score * 0.4) + (missing_score * 0.6)
     return int(final_score)
 
+def calculate_data_quality_index(db: Session, site_number: str):
+    # DQI = Weighted average of core quality metrics (0-100)
+    # Weights: Missing Pages (40%), Query Latency (30%), SAE Conformity (30%)
+    
+    # 1. Missing Pages Score
+    missing_count = db.query(models.MissingPages).filter(models.MissingPages.site_number == site_number).count()
+    # Benchmark: > 10 missing pages is 0 score. 0 missing is 100.
+    missing_score = max(0, 100 - (missing_count * 10))
+    
+    # 2. Query Latency (Mocked for now as we don't have query table yet, using rand for demo robustness)
+    # Ideally link to Query table.
+    latency = random.randint(1, 10) 
+    latency_score = max(0, 100 - (latency * 5)) # > 20 days is 0.
+    
+    # 3. SAE Conformity
+    # Ratio of Reviewed SAEs vs Total
+    sae_total = db.query(models.SAEMetrics).filter(models.SAEMetrics.site.contains(site_number)).count()
+    if sae_total == 0:
+        sae_score = 100
+    else:
+        pending = db.query(models.SAEMetrics).filter(models.SAEMetrics.site.contains(site_number), models.SAEMetrics.review_status != 'Reviewed').count()
+        sae_score = int(((sae_total - pending) / sae_total) * 100)
+    
+    dqi = (missing_score * 0.4) + (latency_score * 0.3) + (sae_score * 0.3)
+    return int(dqi)
+
 def get_risk_heatmap_data(db: Session):
     # Aggregate missing pages by Site and Country
     # Used for Dashboard Heatmap
@@ -92,10 +118,69 @@ def get_detailed_risk_data(db: Session):
             "missing_pages": missing,
             "query_latency": latency,
             "risk_level": risk_level,
+            "dqi": calculate_data_quality_index(db, site),
             "recommendation": generate_recommendation(risk_level, missing, sae_count)
         })
         
     return results
+
+    return results
+
+def get_site_patients_data(db: Session, site_number: str):
+    # Aggregates data to form a Patient-Level view for a specific site
+    # Determines "Clean Patient" status: No Missing Pages AND No Pending SAEs
+    
+    # 1. Get all subjects for this site from EDC Metrics (Single Source of Truth for Subjects)
+    # If EDC metrics is empty for this site, we might fallback to other tables, but let's assume EDC is populated
+    subjects = db.query(models.EDCMetrics).filter(models.EDCMetrics.site_id == site_number).all()
+    
+    # If no EDC entries, try to infer from MissingPages or SAEs for robustness in this demo
+    if not subjects:
+        # distinct subjects from missing pages
+        distinct_missing = db.query(models.MissingPages.subject_name).filter(models.MissingPages.site_number == site_number).distinct().all()
+        # Create mock objects
+        subjects = [models.EDCMetrics(subject_id=r[0], subject_status="Active") for r in distinct_missing]
+
+    patient_data = []
+    clean_count = 0
+    total_count = len(subjects)
+
+    for sub in subjects:
+        sub_id = sub.subject_id
+        
+        # Check Missing Pages
+        missing_count = db.query(models.MissingPages).filter(
+            models.MissingPages.site_number == site_number, 
+            models.MissingPages.subject_name == sub_id
+        ).count()
+        
+        # Check SAEs
+        sae_pending = db.query(models.SAEMetrics).filter(
+            models.SAEMetrics.site.contains(site_number),
+            models.SAEMetrics.patient_id == sub_id,
+            models.SAEMetrics.review_status != 'Reviewed'
+        ).count()
+        
+        is_clean = (missing_count == 0) and (sae_pending == 0)
+        if is_clean:
+            clean_count += 1
+            
+        patient_data.append({
+            "subject_id": sub_id,
+            "status": sub.subject_status,
+            "is_clean": is_clean,
+            "missing_pages": missing_count,
+            "sae_pending": sae_pending,
+            "last_visit": sub.latest_visit or "N/A"
+        })
+        
+    return {
+        "site_id": site_number,
+        "total_patients": total_count,
+        "clean_patient_count": clean_count,
+        "clean_patient_rate": int((clean_count/total_count * 100) if total_count > 0 else 100),
+        "topics": patient_data
+    }
 
 def generate_recommendation(risk, missing, sae):
     if risk == "High":

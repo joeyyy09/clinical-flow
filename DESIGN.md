@@ -5,21 +5,66 @@ ClinicalFlow is designed as a modular, loosely coupled system that separates the
 
 ## 2. Architecture Overview
 
-### High-Level Diagram
+### High-Level Architecture
 ```mermaid
 graph TD
-    User[Clinical Lead] -->|HTTPS| Frontend[React SPA]
-    Frontend -->|REST API (JSON)| Backend[FastAPI Server]
+    User([Clinical Lead]) -->|HTTPS/Interact| UI[Frontend: React + Vite]
     
-    subgraph "Backend Services"
-        Backend -->|Write/Read| DB[(SQLite Database)]
-        Backend -->|Process| Ingestion[Ingestion Engine (Pandas)]
-        Backend -->|Generate| Reports[ReportLab PDF Engine]
-        Backend -->|Query| Agent[AI Agent Logic]
+    subgraph "Presentation Layer"
+        UI -->|State| Store[React Context]
+        UI -->|Route| Views[Pages: Monitor, Reports]
     end
+
+    UI -->|REST API| API[Backend: FastAPI]
+
+    subgraph "Core Logic Layer"
+        API -->|Route Request| Router[API Router]
+        Router -->|Process| RiskEng[Analytics Engine]
+        Router -->|Process| DocGen[ReportLab PDF Engine]
+        Router -->|Process| Agent[AI Agent (LangChain)]
+    end
+
+    subgraph "Data Persistence"
+        RiskEng -->|Read/Write| DB[(SQLite Database)]
+        Agent -- Read --> DB
+        Ingest[Data Ingestion] -->|Write| DB
+    end
+
+    File[Excel/CSV Data] -->|Upload| Ingest
+```
+
+### 3.4 AI Workflow (Agentic)
+```mermaid
+sequenceDiagram
+    participant User
+    participant StandardAgent
+    participant AgenticTool
+    participant Database
+
+    User->>StandardAgent: "Which sites have >10 SAEs?"
+    StandardAgent->>AgenticTool: Parse Intent & Schema
+    AgenticTool->>AgenticTool: Generate SQL/Pandas Query
+    AgenticTool->>Database: Execute Query (Read-Only)
+    Database-->>AgenticTool: Return Result Set
+    AgenticTool-->>StandardAgent: Format Natural Language Answer
+    StandardAgent-->>User: "Sites 101 and 202 have >10 SAEs..."
+```
+
+### 3.5 Data Ingestion Pipeline
+```mermaid
+flowchart LR
+    Upload[User Upload] -->|POST /ingest| Server[FastAPI]
+    Server -->|Save| Disk[Temp Storage]
     
-    Ingestion -->|Parse| Files[Excel/CSV Files]
-    Ingestion -->|Update| DB
+    Disk -->|Read| Pandas[Pandas DataFrame]
+    Pandas -->|Validate| Schema{Check Columns}
+    
+    Schema -- Valid --> Norm[Normalize Data]
+    Schema -- Invalid --> Error[Reject File]
+    
+    Norm -->|Structure| Models[SQLAlchemy Models]
+    Models -->|Commit| DB[(Database)]
+    DB -->|Update| UI[Frontend Status]
 ```
 
 ## 3. Component Design
@@ -53,6 +98,17 @@ graph TD
   - `analytics.py`: Encapsulates business logic for calculating "Risk Levels" (High/Medium/Low) based on SAE velocity and missing pages.
   - `reports.py`: Dedicated module for determining PDF layout and content injection using ReportLab.
   - `ingestion.py`: "Extract-Transform-Load" (ETL) pipeline logic.
+
+### 3.3 AI Architecture (Agentic & Generative)
+The system employs a dual-mode AI strategy:
+1.  **Agentic AI (`agent.py`):**
+    -   **Framework:** Built on `LangChain` (logic) and `PandasAI` (data manipulation).
+    -   **Mechanism:** Parses natural language (e.g., "Find underperforming sites") into Pandas DataFrame operations.
+    -   **Tool Use:** Has direct access to the SQLite database via `read_sql` to answer scientific questions accurately.
+2.  **Generative AI (Reporting):**
+    -   **Context-Aware Generation:** Injects calculated metrics (DQI scores, High Risk counts) into a structured prompt.
+    -   **Output:** Generates executive summaries for PDF reports, synthesizing complex data into narrative form.
+
 
 ## 4. Data Flow
 
