@@ -13,13 +13,17 @@ except ImportError:
 
 class LLMService:
     def __init__(self):
-        self.api_key = os.getenv("GEMINI_API_KEY")
+        self.api_key = os.getenv("GEMINI_API_KEY") 
         self.provider = "mock"
         
         if self.api_key and HAS_GEMINI:
             self.provider = "gemini"
             genai.configure(api_key=self.api_key)
+<<<<<<< HEAD
             # Use gemini-2.5-flash as it is the only one with available quota
+=======
+            # Fallback to latest alias which has at least some quota (20/day)
+>>>>>>> ed5a650 (Updated LLM in chatbot)
             self.model = genai.GenerativeModel('gemini-2.5-flash')
             print(" [OK] LLM Service: Using Google Gemini (gemini-2.5-flash)")
         else:
@@ -80,6 +84,7 @@ class LLMService:
         """
         try:
             response = self.model.generate_content(prompt)
+            # Check for block content if attributes exist, though text access should raise error if blocked
             return response.text
         except Exception as e:
              print(f" [ERR] Gemini Insight Error: {e}")

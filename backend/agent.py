@@ -1,6 +1,7 @@
 
 import os
 import pandas as pd
+import traceback
 from sqlalchemy import create_engine
 from llm_service import LLMService
 
@@ -55,6 +56,8 @@ class ClinicalAgent:
             
         except Exception as e:
             print(f"❌ Execution Error: {e}")
+            print(f"❌ SQL: {sql_query}")
+            traceback.print_exc()
             return {
                 "answer": f"I attempted to analyze the data but encountered a query error. \n\nGenerated SQL: `{sql_query}` \n\nError: {str(e)}",
                 "data": []

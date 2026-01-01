@@ -10,8 +10,13 @@ const SidebarItem = ({ icon: Icon, label, active, onClick }) => (
     <div
         onClick={onClick}
         className={`flex items-center gap-3 px-4 py-3 cursor-pointer transition-all duration-200 border-l-4 ${active
+<<<<<<< HEAD
                 ? 'bg-gradient-to-r from-blue-900/50 to-transparent border-blue-500 text-blue-400'
                 : 'border-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+=======
+            ? 'bg-gradient-to-r from-blue-900/50 to-transparent border-blue-500 text-blue-400'
+            : 'border-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+>>>>>>> ed5a650 (Updated LLM in chatbot)
             }`}
     >
         <Icon className={`w-5 h-5 ${active ? 'text-blue-400' : ''}`} />
