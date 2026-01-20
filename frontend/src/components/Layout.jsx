@@ -9,14 +9,9 @@ import Modal from './Modal';
 const SidebarItem = ({ icon: Icon, label, active, onClick }) => (
     <div
         onClick={onClick}
-        className={`flex items-center gap-3 px-4 py-3 cursor-pointer transition-all duration-200 border-l-4 ${active
-<<<<<<< HEAD
-                ? 'bg-gradient-to-r from-blue-900/50 to-transparent border-blue-500 text-blue-400'
-                : 'border-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
-=======
+        className={ `flex items-center gap-3 px-4 py-3 cursor-pointer transition-all duration-200 border-l-4 ${ active
             ? 'bg-gradient-to-r from-blue-900/50 to-transparent border-blue-500 text-blue-400'
             : 'border-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
->>>>>>> ed5a650 (Updated LLM in chatbot)
             }`}
     >
         <Icon className={`w-5 h-5 ${active ? 'text-blue-400' : ''}`} />
@@ -24,6 +19,13 @@ const SidebarItem = ({ icon: Icon, label, active, onClick }) => (
     </div>
 );
 
+/**
+ * AppLayout Component
+ * 
+ * The root layout structure of the application.
+ * Manages the global sidebar navigation, search bar, notifications, 
+ * and theme (dark/light mode).
+ */
 const AppLayout = ({ children, activeTab, setActiveTab, searchQuery, setSearchQuery, onLogout, darkMode, setDarkMode }) => {
     const [notificationsOpen, setNotificationsOpen] = useState(false);
     const [isSidebarOpen, setSidebarOpen] = useState(true);

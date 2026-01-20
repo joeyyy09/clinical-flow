@@ -3,6 +3,17 @@ import React, { useState, useEffect } from 'react';
 import Modal from './Modal';
 import { User, CheckCircle, AlertCircle, FileText, Activity } from 'lucide-react';
 
+/**
+ * SiteDetailsModal Component
+ * 
+ * Provides a detailed "Patient Roster" view for a specific site.
+ * Highlights "clean" vs "dirty" patients based on missing pages and SAEs.
+ * 
+ * @param {Object} props
+ * @param {boolean} props.isOpen - Controls visibility.
+ * @param {Function} props.onClose - Closure callback.
+ * @param {string} props.siteNumber - The site ID to fetch patient data for.
+ */
 const SiteDetailsModal = ({ isOpen, onClose, siteNumber }) => {
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(false);

@@ -1,14 +1,25 @@
 
 import React, { useEffect, useState } from 'react';
-import { AlertTriangle, TrendingUp, Activity, CheckCircle, Search, Filter } from 'lucide-react';
+import { AlertTriangle, TrendingUp, Activity, CheckCircle, Search, Filter, Sparkles, ArrowUpDown, Clock, AlertCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import Modal from '../components/Modal';
 import CommentModal from '../components/CommentModal';
 import SiteDetailsModal from '../components/SiteDetailsModal';
 
+import { useClinicalData } from '../hooks/useClinicalData';
+
+/**
+ * RiskMonitor Page
+ * 
+ * A surveillance dashboard that tracks site performance metrics like 
+ * DQI, SAE counts, and query resolution rates.
+ * Provides advanced filtering, sorting, and automated risk report generation.
+ * 
+ * @param {Object} props
+ * @param {string} props.searchQuery - The current search query from the global header.
+ */
 const RiskMonitor = ({ searchQuery = "" }) => {
-  const [riskData, setRiskData] = useState([]);
-  const [loading, setLoading] = useState(true);
+    const { riskData, loading, fetchRiskMonitorData, generateReport } = useClinicalData();
   const [filterOpen, setFilterOpen] = useState(false);
   const [selectedStudy, setSelectedStudy] = useState('All');
   const [commentModalOpen, setCommentModalOpen] = useState(false);
@@ -16,14 +27,17 @@ const RiskMonitor = ({ searchQuery = "" }) => {
   const [selectedSite, setSelectedSite] = useState(null);
 
   useEffect(() => {
-    fetch('http://127.0.0.1:8000/analytics/risk-monitor')
-      .then(res => res.json())
-      .then(data => {
-          setRiskData(data);
-          setLoading(false);
-      })
-      .catch(err => console.error("Risk API Error", err));
-  }, []);
+      fetchRiskMonitorData();
+  }, [ fetchRiskMonitorData ] );
+
+    const handleGenerateReport = async () =>
+    {
+        const success = await generateReport();
+        if ( !success )
+        {
+            alert( "Failed to generate report" );
+        }
+    };
 
   const filteredData = riskData.filter(site => {
       if (!site) return false;
@@ -37,7 +51,6 @@ const RiskMonitor = ({ searchQuery = "" }) => {
       return matchesSearch && matchesStudy;
   });
 
-  /* Sorting Logic */
   const [sortConfig, setSortConfig] = useState({ key: 'dqi', direction: 'ascending' });
 
   const sortedData = React.useMemo(() => {
@@ -64,34 +77,26 @@ const RiskMonitor = ({ searchQuery = "" }) => {
     setSortConfig({ key, direction });
   };
 
-  /* Render Helper */
-  const getClassNamesFor = (name) => {
-    if (!sortConfig) return;
-    return sortConfig.key === name ? sortConfig.direction : undefined;
+    const getSiteRiskStatus = ( level ) =>
+    {
+        switch ( level )
+        {
+            case 'High': return { color: 'bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400', icon: AlertCircle };
+            case 'Medium': return { color: 'bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400', icon: Clock };
+            case 'Low': return { color: 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400', icon: CheckCircle };
+            default: return { color: 'bg-slate-100 dark:bg-slate-900/30 text-slate-600 dark:text-slate-400', icon: Activity };
+        }
   };
 
-  const handleGenerateReport = async () => {
-    try {
-        const response = await fetch('http://127.0.0.1:8000/reports/generate', {
-            method: 'POST',
-        });
-        
-        if (response.ok) {
-            const blob = await response.blob();
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = "risk_assessment_report.pdf";
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
-        } else {
-            alert("Failed to generate report");
+    const getMLRiskStatus = ( level ) =>
+    {
+        switch ( level )
+        {
+            case 'High': return { color: 'text-rose-500', icon: Sparkles };
+            case 'Medium': return { color: 'text-amber-500', icon: Sparkles };
+            case 'Low': return { color: 'text-emerald-500', icon: Sparkles };
+            default: return { color: 'text-slate-400', icon: Sparkles };
         }
-    } catch (error) {
-        console.error("Report generation failed", error);
-        alert("Error generating report");
-    }
   };
 
   if (loading) return <div className="p-8 text-slate-400">Loading risk analysis engine...</div>;
@@ -121,35 +126,43 @@ const RiskMonitor = ({ searchQuery = "" }) => {
       </div>
 
       {/* Risk Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-         <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-rose-100 dark:border-rose-900/30 shadow-sm flex items-start gap-4 transition-colors">
-            <div className="p-3 bg-rose-50 dark:bg-rose-900/20 rounded-xl text-rose-500 dark:text-rose-400">
-                <AlertTriangle className="w-6 h-6" />
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-rose-100 dark:border-rose-900/30 shadow-sm flex items-start gap-3">
+                  <div className="p-2.5 bg-rose-50 dark:bg-rose-900/20 rounded-xl text-rose-500">
+                      <AlertTriangle className="w-5 h-5" />
             </div>
             <div>
-                <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">High Risk Sites</p>
-                <h3 className="text-2xl font-bold text-slate-800 dark:text-white">{riskData.filter(r => r.risk_level === 'High').length}</h3>
-                <p className="text-xs text-rose-500 dark:text-rose-400 mt-1 font-medium">Immediate Action Required</p>
+                      <p className="text-slate-500 dark:text-slate-400 text-xs font-medium">Critical Sites</p>
+                      <h3 className="text-xl font-bold text-slate-800 dark:text-white">{ riskData.filter( r => r.risk_level === 'High' ).length }</h3>
             </div>
          </div>
-         <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-amber-100 dark:border-amber-900/30 shadow-sm flex items-start gap-4 transition-colors">
-            <div className="p-3 bg-amber-50 dark:bg-amber-900/20 rounded-xl text-amber-500 dark:text-amber-400">
-                <Activity className="w-6 h-6" />
+              <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-amber-100 dark:border-amber-900/30 shadow-sm flex items-start gap-3">
+                  <div className="p-2.5 bg-amber-50 dark:bg-amber-900/20 rounded-xl text-amber-500">
+                      <Activity className="w-5 h-5" />
             </div>
             <div>
-                <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">Medium Risk Sites</p>
-                <h3 className="text-2xl font-bold text-slate-800 dark:text-white">{riskData.filter(r => r.risk_level === 'Medium').length}</h3>
-                <p className="text-xs text-amber-600 dark:text-amber-400 mt-1 font-medium">Monitor Closely</p>
+                      <p className="text-slate-500 dark:text-slate-400 text-xs font-medium">Under Surveillance</p>
+                      <h3 className="text-xl font-bold text-slate-800 dark:text-white">{ riskData.filter( r => r.risk_level === 'Medium' ).length }</h3>
             </div>
          </div>
-         <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm flex items-start gap-4 transition-colors">
-            <div className="p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl text-emerald-500 dark:text-emerald-400">
-                <CheckCircle className="w-6 h-6" />
+              <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-emerald-100 dark:border-emerald-900/30 shadow-sm flex items-start gap-3">
+                  <div className="p-2.5 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl text-emerald-500">
+                      <CheckCircle className="w-5 h-5" />
             </div>
             <div>
-                <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">Low Risk Sites</p>
-                <h3 className="text-2xl font-bold text-slate-800 dark:text-white">{riskData.filter(r => r.risk_level === 'Low').length}</h3>
-                <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-1 font-medium">Performing Well</p>
+                      <p className="text-slate-500 dark:text-slate-400 text-xs font-medium">Clean Sites</p>
+                      <h3 className="text-xl font-bold text-slate-800 dark:text-white">{ riskData.filter( r => ( r.clean_patient_rate || 0 ) > 80 ).length }</h3>
+                  </div>
+              </div>
+              <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-blue-100 dark:border-blue-900/30 shadow-sm flex items-start gap-3">
+                  <div className="p-2.5 bg-blue-50 dark:bg-blue-900/20 rounded-xl text-blue-500">
+                      <TrendingUp className="w-5 h-5" />
+                  </div>
+                  <div>
+                      <p className="text-slate-500 dark:text-slate-400 text-xs font-medium">Avg Readiness</p>
+                      <h3 className="text-xl font-bold text-slate-800 dark:text-white">
+                          { riskData.length > 0 ? Math.round( riskData.reduce( ( acc, curr ) => acc + ( curr.milestone_readiness || 0 ), 0 ) / riskData.length ) : 0 }%
+                      </h3>
             </div>
          </div>
       </div>
@@ -157,31 +170,23 @@ const RiskMonitor = ({ searchQuery = "" }) => {
       {/* Detailed Table */}
       <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden min-h-[400px] transition-colors">
          <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/50">
-             <h3 className="font-semibold text-slate-700 dark:text-slate-200">Detailed Site Analysis</h3>
-             <div className="text-xs text-slate-400 italic">Showing {filteredData.length} records</div>
+                  <h3 className="font-semibold text-slate-700 dark:text-slate-200">Scientific Operational Metrics</h3>
+                  <div className="text-xs text-slate-400">Total Analyzed: { filteredData.length } Sites</div>
          </div>
          {filteredData.length > 0 ? (
+                  <div className="overflow-x-auto">
              <table className="w-full text-sm text-left">
                   <thead className="bg-slate-50 dark:bg-slate-900/50 text-slate-500 dark:text-slate-400 font-medium">
                       <tr>
-                          <th className="px-6 py-3 cursor-pointer" onClick={() => requestSort('site')}>
-                              Site ID {sortConfig.key === 'site' && (sortConfig.direction === 'ascending' ? '↑' : '↓')}
-                          </th>
-                          <th className="px-6 py-3">Country</th>
-                          <th className="px-6 py-3 text-center cursor-pointer" onClick={() => requestSort('dqi')}>
-                              Data Quality Index {sortConfig.key === 'dqi' && (sortConfig.direction === 'ascending' ? '↑' : '↓')}
-                          </th>
-                          <th className="px-6 py-3 cursor-pointer" onClick={() => requestSort('sae_count')}>
-                              SAE Count {sortConfig.key === 'sae_count' && (sortConfig.direction === 'ascending' ? '↑' : '↓')}
-                          </th>
-                          <th className="px-6 py-3 cursor-pointer" onClick={() => requestSort('protocol_deviations')}>
-                              Deviations {sortConfig.key === 'protocol_deviations' && (sortConfig.direction === 'ascending' ? '↑' : '↓')}
-                          </th>
-                          <th className="px-6 py-3 cursor-pointer" onClick={() => requestSort('query_resolution_rate')}>
-                              Query Rate {sortConfig.key === 'query_resolution_rate' && (sortConfig.direction === 'ascending' ? '↑' : '↓')}
-                          </th>
-                          <th className="px-6 py-3">Risk Level</th>
-                          <th className="px-6 py-3">AI Recommendation</th>
+                                  <th className="px-6 py-3 cursor-pointer" onClick={ () => requestSort( 'site' ) }>Site ID</th>
+                                  <th className="px-6 py-3 cursor-pointer" onClick={ () => requestSort( 'dqi' ) }>DQI</th>
+                                  <th className="px-6 py-3">Clean Patients %</th>
+                                  <th className="px-6 py-3">Readiness</th>
+                                  <th className="px-6 py-3">SAEs</th>
+                                  <th className="px-6 py-3">Deviations</th>
+                                  <th className="px-6 py-3">Heuristic Risk</th>
+                                  <th className="px-6 py-3">AI Prediction</th>
+                                  <th className="px-6 py-3">Recommendation</th>
                           <th className="px-6 py-3">Actions</th>
                       </tr>
                   </thead>
@@ -192,60 +197,54 @@ const RiskMonitor = ({ searchQuery = "" }) => {
                             key={index} className="hover:bg-slate-50/80 dark:hover:bg-slate-700/50 transition-colors"
                          >
                              <td className="px-6 py-4 font-medium text-slate-700 dark:text-slate-200">{site.site}</td>
-                             <td className="px-6 py-4 text-slate-500 dark:text-slate-400">{site.country}</td>
-                             <td className="px-6 py-4 text-center">
-                                 <div className="inline-flex flex-col items-center">
-                                     <span className={`text-lg font-bold ${
-                                         (site.dqi || 0) < 50 ? 'text-rose-500' : (site.dqi || 0) < 80 ? 'text-amber-500' : 'text-emerald-500'
-                                     }`}>
-                                         {site.dqi || 'N/A'}
-                                     </span>
-                                     <span className="text-[10px] text-slate-400">/100</span>
+                             <td className="px-6 py-4">
+                                 <span className={ `font-bold ${ ( site.dqi || 0 ) < 50 ? 'text-rose-500' : ( site.dqi || 0 ) < 80 ? 'text-amber-500' : 'text-emerald-500' }` }>
+                                     { site.dqi }
+                                 </span>
+                             </td>
+                             <td className="px-6 py-4">
+                                 <div className="flex flex-col gap-1 w-24">
+                                     <div className="w-full h-1.5 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
+                                         <div className={ `h-full bg-emerald-500` } style={ { width: `${ site.clean_patient_rate }%` } } />
+                                     </div>
+                                     <span className="text-[10px] text-slate-500">{ site.clean_patient_rate }% Clean</span>
                                  </div>
                              </td>
-                             <td className="px-6 py-4 text-slate-500 dark:text-slate-400 font-medium">{site.sae_count}</td>
-                             <td className="px-6 py-4 text-slate-500 dark:text-slate-400">{site.protocol_deviations || '0'}</td>
                              <td className="px-6 py-4">
-                                <div className="flex items-center gap-2">
-                                    <div className="w-16 h-1.5 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
-                                        <div 
-                                            className={`h-full rounded-full ${site.query_resolution_rate < 70 ? 'bg-amber-500' : 'bg-emerald-500'}`} 
-                                            style={{ width: `${site.query_resolution_rate || 0}%` }}
-                                        />
-                                    </div>
-                                    <span className="text-xs text-slate-500">{site.query_resolution_rate || 0}%</span>
-                                </div>
+                                 <div className="flex flex-col gap-1 w-24">
+                                     <div className="w-full h-1.5 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
+                                         <div className={ `h-full bg-blue-500` } style={ { width: `${ site.milestone_readiness }%` } } />
+                                     </div>
+                                     <span className="text-[10px] text-slate-500">{ site.milestone_readiness }% Ready</span>
+                                 </div>
                              </td>
+                             <td className="px-6 py-4 text-slate-500 dark:text-slate-400 font-medium">{ site.sae_count }</td>
+                             <td className="px-6 py-4 text-slate-500 dark:text-slate-400">{ site.protocol_deviations }</td>
                              <td className="px-6 py-4">
-                                 <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                                     site.risk_level === 'High' ? 'bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400' :
-                                     site.risk_level === 'Medium' ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400' :
-                                     'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400'
-                                 }`}>
+                                 <span className={ `px-2 py-0.5 rounded-full text-[10px] font-bold ${ getSiteRiskStatus( site.risk_level ).color }` }>
                                      {site.risk_level}
                                  </span>
                              </td>
+                             <td className="px-6 py-4">
+                                 <div className="flex items-center gap-1">
+                                     <Sparkles className={ `w-3 h-3 ${ getMLRiskStatus( site.predicted_risk ).color }` } />
+                                     <span className={ `text-[10px] font-bold ${ getMLRiskStatus( site.predicted_risk ).color }` }>
+                                         { site.predicted_risk }
+                                     </span>
+                                 </div>
+                             </td>
                              <td className="px-6 py-4 text-slate-500 dark:text-slate-400 text-xs italic">{site.recommendation}</td>
                               <td className="px-6 py-4">
-                                 <div className="flex flex-col gap-2">
-                                     <button 
-                                         onClick={() => { setSelectedSite(site.site); setCommentModalOpen(true); }}
-                                         className="text-blue-600 hover:text-blue-800 text-xs font-medium underline text-left"
-                                     >
-                                         Review / Comment
-                                     </button>
-                                     <button 
-                                         onClick={() => { setSelectedSite(site.site); setDetailsModalOpen(true); }}
-                                         className="text-indigo-600 hover:text-indigo-800 text-xs font-medium underline text-left"
-                                     >
-                                         View Patients
-                                     </button>
+                                 <div className="flex flex-col gap-1">
+                                     <button onClick={ () => { setSelectedSite( site.site ); setCommentModalOpen( true ); } } className="text-blue-600 hover:text-blue-800 text-[10px] font-bold uppercase tracking-wider">Comment</button>
+                                     <button onClick={ () => { setSelectedSite( site.site ); setDetailsModalOpen( true ); } } className="text-indigo-600 hover:text-indigo-800 text-[10px] font-bold uppercase tracking-wider">Patients</button>
                                  </div>
                              </td>
                          </motion.tr>
                      ))}
                  </tbody>
              </table>
+                  </div>
          ) : (
              <div className="p-12 text-center text-slate-400">
                  <Search className="w-12 h-12 mx-auto mb-3 opacity-20" />

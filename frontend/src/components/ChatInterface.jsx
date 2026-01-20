@@ -3,40 +3,32 @@ import React, { useState } from 'react';
 import { Send, Bot, X, Maximize2, Minimize2, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
+import { useClinicalData } from '../hooks/useClinicalData';
+
+/**
+ * ChatInterface Component
+ * 
+ * A conversational UI component that allows users to interact with the Clinical AI Copilot.
+ * Supports natural language queries about clinical trial data and displays 
+ * AI-generated insights and charts.
+ * 
+ * @param {Object} props
+ * @param {boolean} props.minimized - Whether the interface is in a floating/minimized state.
+ */
 const ChatInterface = ({ minimized = false }) => {
   const [isOpen, setIsOpen] = useState(!minimized);
-  const [messages, setMessages] = useState([
-    { role: 'agent', content: 'Hello! I am your Clinical AI Copilot. I can help you analyze risks, draft reports, or query data.' }
-  ]);
-  const [input, setInput] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [chartData, setChartData] = useState(null);
+  const { messages, chatLoading: loading, chartData, sendMessage } = useClinicalData();
+  const [ input, setInput ] = useState( '' );
 
-  const sendMessage = async () => {
+  /**
+   * Sends the user's message to the backend AI agent and updates the chat state.
+   */
+  const handleSendMessage = async () =>
+  {
     if (!input.trim()) return;
-
-    const userMsg = { role: 'user', content: input };
-    setMessages(prev => [...prev, userMsg]);
+    const currentInput = input;
     setInput('');
-    setLoading(true);
-    setChartData(null);
-
-    try {
-      const response = await fetch('http://localhost:8000/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: userMsg.content }),
-      });
-      const data = await response.json();
-
-      setMessages(prev => [...prev, { role: 'agent', content: data.answer }]);
-      if (data.chart_type) setChartData(data);
-
-    } catch (error) {
-      setMessages(prev => [...prev, { role: 'agent', content: 'Connection error. Please try again.' }]);
-    } finally {
-      setLoading(false);
-    }
+    await sendMessage( currentInput );
   };
 
   if (!isOpen && minimized) {
@@ -113,12 +105,12 @@ const ChatInterface = ({ minimized = false }) => {
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
+            onKeyPress={ ( e ) => e.key === 'Enter' && handleSendMessage() }
             placeholder="Ask me anything about the data..."
             className="flex-1 bg-slate-100 dark:bg-slate-700 border-none rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-slate-700 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-500 transition-colors"
           />
           <button
-            onClick={sendMessage}
+            onClick={ handleSendMessage }
             disabled={loading}
             className="absolute right-2 top-2 bottom-2 bg-blue-600 text-white p-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors shadow-lg shadow-blue-500/30"
           >

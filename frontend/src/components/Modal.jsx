@@ -3,6 +3,17 @@ import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X } from 'lucide-react';
 
+/**
+ * Modal Component
+ * 
+ * A reusable accessible modal dialog with backdrop blur and entrance animations.
+ * 
+ * @param {Object} props
+ * @param {boolean} props.isOpen - Controls visibility of the modal.
+ * @param {Function} props.onClose - Callback triggered when the modal is closed.
+ * @param {string} props.title - Title displayed in the modal header.
+ * @param {React.ReactNode} props.children - Modal content.
+ */
 const Modal = ({ isOpen, onClose, title, children }) => {
     return (
         <AnimatePresence>

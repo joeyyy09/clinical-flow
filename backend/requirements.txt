@@ -4,3 +4,5 @@ python-dotenv
 sqlalchemy
 pandas
 google-generativeai
+reportlab
+python-multipart

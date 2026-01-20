@@ -3,6 +3,17 @@ import React, { useState, useEffect } from 'react';
 import Modal from './Modal';
 import { Send, User, Clock } from 'lucide-react';
 
+/**
+ * CommentModal Component
+ * 
+ * Allows users to view and post comments/notes for a specific site.
+ * Used for inter-team collaboration (e.g., CRAs and Medical Monitors).
+ * 
+ * @param {Object} props
+ * @param {boolean} props.isOpen - Controls visibility.
+ * @param {Function} props.onClose - Closure callback.
+ * @param {string} props.siteNumber - The site ID for which comments are displayed.
+ */
 const CommentModal = ({ isOpen, onClose, siteNumber }) => {
     const [comments, setComments] = useState([]);
     const [newComment, setNewComment] = useState('');
@@ -35,7 +46,6 @@ const CommentModal = ({ isOpen, onClose, siteNumber }) => {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    comment: newComment,
                     comment: newComment,
                     author: "Dr. Smith", // Mocked currently logged in user
                     tag: tag

@@ -3,86 +3,34 @@ import React, { useState, useRef, useEffect } from 'react';
 import { UploadCloud, CheckCircle, Database, Play, RefreshCw, Upload } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
+import { useClinicalData } from '../hooks/useClinicalData';
+
+/**
+ * DataIngestion Page
+ * 
+ * Provides a UI for uploading and processing clinical trial datasets.
+ * Manages a multi-stage pipeline (upload -> backend ingestion -> UI completion) 
+ * with real-time logging and progress tracking.
+ */
 const DataIngestion = () => {
-    const [status, setStatus] = useState('idle'); // idle, uploading, processing, complete, error
-    const [progress, setProgress] = useState(0);
-    const [logs, setLogs] = useState([]);
-    const [lastSync, setLastSync] = useState(null);
+    const {
+        ingestionStatus: status,
+        ingestionProgress: progress,
+        ingestionLogs: logs,
+        lastSync,
+        startIngestionPipeline
+    } = useClinicalData();
     const fileInputRef = useRef(null);
-
-    useEffect(() => {
-        const storedSync = localStorage.getItem('last_ingestion_sync');
-        if (storedSync) setLastSync(storedSync);
-    }, []);
-
-    const addLog = (message) => {
-        const timestamp = new Date().toLocaleTimeString();
-        setLogs(prev => [`[${timestamp}] ${message}`, ...prev]);
-    };
 
     const handleFileSelect = (event) => {
         const file = event.target.files[0];
         if (file) {
-            startPipeline(file.name);
+            startIngestionPipeline( file );
         }
     };
 
     const triggerFileInput = () => {
         if(fileInputRef.current) fileInputRef.current.click();
-    };
-
-    const startPipeline = async (filename) => {
-        setStatus('uploading');
-        setProgress(0);
-        setLogs([]);
-        addLog(`Started ingestion pipeline for ${filename}...`);
-
-        const file = fileInputRef.current?.files[0];
-        if (!file) return;
-
-        const formData = new FormData();
-        formData.append('file', file);
-
-        try {
-            // Upload Phase
-            setProgress(30);
-            addLog("Uploading file to secure storage...");
-            
-            const response = await fetch('http://127.0.0.1:8000/ingest/file', {
-                method: 'POST',
-                body: formData,
-            });
-
-            if (response.ok) {
-                setProgress(60);
-                setStatus('processing');
-                addLog("Upload complete. Triggering ingestion engine...");
-                
-                // Simulate processing delay for UX (since usage is async on backend)
-                setTimeout(() => {
-                    setProgress(85);
-                    addLog("Parsing entities and updating vector index...");
-                    
-                    setTimeout(() => {
-                        setProgress(100);
-                        setStatus('complete');
-                        addLog("Ingestion complete. Knowledge base updated.");
-                        
-                        const now = new Date().toLocaleString();
-                        setLastSync(now);
-                        localStorage.setItem('last_ingestion_sync', now);
-                    }, 1500);
-                }, 1500);
-
-            } else {
-                setStatus('error');
-                addLog("Error: Upload failed.");
-            }
-        } catch (error) {
-            console.error(error);
-            setStatus('error');
-            addLog("Error: Connection failed.");
-        }
     };
 
     return (
@@ -100,7 +48,7 @@ const DataIngestion = () => {
                     <h1 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">Data Ingestion Pipeline</h1>
                     <p className="text-slate-500 dark:text-slate-400 mt-2">Manage clinical trial datasets and update the knowledge base.</p>
                 </div>
-                 <div className="text-right">
+                <div className="text-right">
                     <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mb-1">Last Synchronization</p>
                     <p className="text-sm font-medium text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 px-3 py-1 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm inline-block">
                         {lastSync || "Never"}

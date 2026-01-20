@@ -1,9 +1,15 @@
 
 import React, { useEffect, useState } from 'react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Cell } from 'recharts';
-import { ArrowUpRight, ArrowDownRight, Users, FileWarning, Activity, FileText } from 'lucide-react';
+import { ArrowUpRight, ArrowDownRight, Users, FileWarning, Activity, FileText, Brain, Target, ShieldCheck, Sparkles } from 'lucide-react';
 import { motion } from 'framer-motion';
 
+/**
+ * MetricCard Component
+ * 
+ * A reusable card for displaying key performance indicators (KPIs).
+ * UI includes the metric value, a trend indicator (up/down), and an icon.
+ */
 const MetricCard = ({ title, value, change, trend, icon: Icon, color }) => (
   <motion.div 
     whileHover={{ y: -5 }}
@@ -24,6 +30,12 @@ const MetricCard = ({ title, value, change, trend, icon: Icon, color }) => (
   </motion.div>
 );
 
+/**
+ * RiskHeatmap Component
+ * 
+ * Visualizes site risk scores using a vertical bar chart.
+ * Uses color-coding (red, amber, emerald) based on the risk score magnitude.
+ */
 const RiskHeatmap = ({ data }) => {
     if (!data) return <div className="h-64 flex items-center justify-center text-slate-400">Loading Risk Map...</div>;
     
@@ -51,27 +63,76 @@ const RiskHeatmap = ({ data }) => {
         </div>
     )
 }
+const MLStatus = () =>
+{
+  const { mlStatus, fetchMLStatus } = useClinicalData();
 
+  useEffect( () =>
+  {
+    fetchMLStatus();
+  }, [ fetchMLStatus ] );
+
+  if ( !mlStatus ) return null;
+
+  return (
+    <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 transition-colors mt-6">
+      <div className="flex items-center gap-3 mb-6">
+        <div className="p-2 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg">
+          <Brain className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+        </div>
+        <div>
+          <h3 className="text-lg font-bold text-slate-800 dark:text-white">Predictive Model Performance</h3>
+          <p className="text-xs text-slate-500">ML Engine: { mlStatus.model_type } | Last Trained: { mlStatus.last_trained }</p>
+        </div>
+        <div className="ml-auto flex items-center gap-2 px-3 py-1 bg-emerald-100 dark:bg-emerald-900/20 rounded-full">
+          <ShieldCheck className="w-4 h-4 text-emerald-600" />
+          <span className="text-xs font-bold text-emerald-600">Model Validated</span>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div>
+          <h4 className="text-sm font-semibold text-slate-600 dark:text-slate-400 mb-4 flex items-center gap-2">
+            <Target className="w-4 h-4" /> Feature Drivers (Importance)
+          </h4>
+          <img
+            src={ `http://127.0.0.1:8000${ mlStatus.feature_importance }` }
+            alt="Feature Importance"
+            className="rounded-xl border border-slate-100 dark:border-slate-700 w-full"
+          />
+        </div>
+        <div>
+          <h4 className="text-sm font-semibold text-slate-600 dark:text-slate-400 mb-4 flex items-center gap-2">
+            <Sparkles className="w-4 h-4" /> Confusion Matrix (Validation)
+          </h4>
+          <img
+            src={ `http://127.0.0.1:8000${ mlStatus.confusion_matrix }` }
+            alt="Confusion Matrix"
+            className="rounded-xl border border-slate-100 dark:border-slate-700 w-full"
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+  ;
+
+
+import { useClinicalData } from '../hooks/useClinicalData';
+
+/**
+ * Overview Page
+ * 
+ * The primary dashboard landing page.
+ * Aggregates high-level stats, trends, and risk heatmaps.
+ * Fetches data for DQI score, SAE trends, and site risks in parallel.
+ */
 const Overview = ({ searchQuery }) => {
-  const [stats, setStats] = useState(null);
-  const [riskData, setRiskData] = useState(null);
-  const [score, setScore] = useState(0);
-  const [trends, setTrends] = useState([]);
+  const { stats, riskData, score, trends, fetchOverviewData } = useClinicalData();
 
   useEffect(() => {
-    // Fetch all data in parallel
-    Promise.all([
-        fetch('http://127.0.0.1:8000/stats').then(res => res.json()),
-        fetch('http://127.0.0.1:8000/analytics/risk').then(res => res.json()),
-        fetch('http://127.0.0.1:8000/analytics/score').then(res => res.json()),
-        fetch('http://127.0.0.1:8000/analytics/trend').then(res => res.json())
-    ]).then(([statsData, riskData, scoreData, trendData]) => {
-        setStats(statsData.data);
-        setRiskData(riskData);
-        setScore(scoreData.score);
-        setTrends(trendData);
-    }).catch(err => console.error("API Error", err));
-  }, []);
+    fetchOverviewData();
+  }, [ fetchOverviewData ] );
 
   const getValue = (name) => {
       if (!stats) return '...';
@@ -149,6 +210,8 @@ const Overview = ({ searchQuery }) => {
          {/* Risk Heatmap Component */}
          <RiskHeatmap data={riskData} />
       </div>
+
+      <MLStatus />
     </div>
   );
 };
