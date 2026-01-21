@@ -1,11 +1,12 @@
 
 import React, { useEffect, useState } from 'react';
-import { AlertTriangle, TrendingUp, Activity, CheckCircle, Search, Filter, Sparkles, ArrowUpDown, Clock, AlertCircle } from 'lucide-react';
+import { AlertTriangle, TrendingUp, Activity, CheckCircle, Search, Filter, Sparkles, ArrowUpDown, Clock, AlertCircle, Brain } from 'lucide-react';
 import { motion } from 'framer-motion';
 import Modal from '../components/Modal';
 import CommentModal from '../components/CommentModal';
 import SiteDetailsModal from '../components/SiteDetailsModal';
 import AgentExplanationModal from '../components/AgentExplanationModal';
+import MLInsightsPanel from '../components/MLInsightsPanel';
 
 import { useClinicalData } from '../hooks/useClinicalData';
 
@@ -26,7 +27,9 @@ const RiskMonitor = ({ searchQuery = "" }) => {
     const [commentModalOpen, setCommentModalOpen] = useState(false);
     const [detailsModalOpen, setDetailsModalOpen] = useState(false);
     const [agentModalOpen, setAgentModalOpen] = useState(false);
+    const [ mlInsightsOpen, setMlInsightsOpen ] = useState( false );
     const [selectedSite, setSelectedSite] = useState(null);
+    const [ mlInsightsSite, setMlInsightsSite ] = useState( null );
 
     useEffect(() => {
         fetchRiskMonitorData();
@@ -250,12 +253,17 @@ const RiskMonitor = ({ searchQuery = "" }) => {
                                             </span>
                                         </td>
                                         <td className="px-6 py-4">
-                                            <div className="flex items-center gap-1">
-                                                <Sparkles className={`w-3 h-3 ${getMLRiskStatus(site.predicted_risk).color}`} />
-                                                <span className={`text-[10px] font-bold ${getMLRiskStatus(site.predicted_risk).color}`}>
+                                            <button
+                                                onClick={ () => { setMlInsightsSite( site.site ); setMlInsightsOpen( true ); } }
+                                                className="flex items-center gap-1 px-2 py-1 rounded-lg hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors group"
+                                                title="Click for ML prediction details"
+                                            >
+                                                <Brain className={ `w-3 h-3 ${ getMLRiskStatus( site.predicted_risk ).color } group-hover:text-indigo-500` } />
+                                                <span className={ `text-[10px] font-bold ${ getMLRiskStatus( site.predicted_risk ).color } group-hover:text-indigo-600` }>
                                                     {site.predicted_risk}
                                                 </span>
-                                            </div>
+                                                <Sparkles className="w-2.5 h-2.5 text-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                            </button>
                                         </td>
                                         <td className="px-6 py-4">
                                             <span className={`px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wide ${getActionStatus(site.action_status).color}`}>
@@ -320,6 +328,12 @@ const RiskMonitor = ({ searchQuery = "" }) => {
                 isOpen={agentModalOpen}
                 onClose={() => setAgentModalOpen(false)}
                 siteNumber={selectedSite}
+            />
+
+            <MLInsightsPanel
+                siteId={ mlInsightsSite }
+                isOpen={ mlInsightsOpen }
+                onClose={ () => { setMlInsightsOpen( false ); setMlInsightsSite( null ); } }
             />
         </div>
     );

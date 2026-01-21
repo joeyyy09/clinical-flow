@@ -4378,3 +4378,284 @@ INFO:     127.0.0.1:51700 - "GET /analytics/risk-monitor HTTP/1.1" 200 OK
 /Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/site-packages/sklearn/utils/validation.py:2739: UserWarning: X does not have valid feature names, but RandomForestClassifier was fitted with feature names
   warnings.warn(
 INFO:     127.0.0.1:51701 - "GET /analytics/risk-monitor HTTP/1.1" 200 OK
+WARNING:  StatReload detected changes in 'routers/reports.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [28302]
+/Users/harshithhh/Desktop/clinical-flow/backend/core/llm_service.py:9: FutureWarning: 
+
+All support for the `google.generativeai` package has ended. It will no longer be receiving 
+updates or bug fixes. Please switch to the `google.genai` package as soon as possible.
+See README for more details:
+
+https://github.com/google-gemini/deprecated-generative-ai-python/blob/main/README.md
+
+  import google.generativeai as genai
+INFO:     Started server process [28876]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+ [WARN] LLM Service: running in OFFLINE/MOCK mode.
+   └── Reason: GEMINI_API_KEY not found in environment.
+INFO:     127.0.0.1:51902 - "GET /analytics/ml-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51907 - "GET /analytics/edrr-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51904 - "GET /analytics/lab-gaps HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51902 - "GET /analytics/inactivated-audit HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51903 - "GET /analytics/missing-visits HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51904 - "GET /analytics/cra/logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51907 - "GET /analytics/cra/performance HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51904 - "GET /analytics/risk HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51902 - "GET /analytics/cra/underperforming HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51904 - "GET /analytics/trend HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51904 - "GET /analytics/ml-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51904 - "GET /analytics/edrr-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51904 - "GET /analytics/lab-gaps HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51904 - "GET /analytics/inactivated-audit HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51904 - "GET /analytics/missing-visits HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51904 - "GET /analytics/cra/logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51904 - "GET /analytics/cra/performance HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51903 - "GET /chat/stats HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51904 - "GET /analytics/risk HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51904 - "GET /analytics/trend HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51905 - "GET /analytics/sae-reviews HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51903 - "GET /analytics/cra/underperforming HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51904 - "GET /chat/stats HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51905 - "GET /analytics/sae-reviews HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51907 - "GET /analytics/score HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51906 - "GET /analytics/coding-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51902 - "GET /analytics/readiness HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51907 - "GET /analytics/score HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51906 - "GET /analytics/coding-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:51902 - "GET /analytics/readiness HTTP/1.1" 200 OK
+WARNING:  StatReload detected changes in 'services/report_generator_llm.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [28876]
+/Users/harshithhh/Desktop/clinical-flow/backend/core/llm_service.py:9: FutureWarning: 
+
+All support for the `google.generativeai` package has ended. It will no longer be receiving 
+updates or bug fixes. Please switch to the `google.genai` package as soon as possible.
+See README for more details:
+
+https://github.com/google-gemini/deprecated-generative-ai-python/blob/main/README.md
+
+  import google.generativeai as genai
+INFO:     Started server process [29089]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+WARNING:  StatReload detected changes in 'routers/reports.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [29089]
+/Users/harshithhh/Desktop/clinical-flow/backend/core/llm_service.py:9: FutureWarning: 
+
+All support for the `google.generativeai` package has ended. It will no longer be receiving 
+updates or bug fixes. Please switch to the `google.genai` package as soon as possible.
+See README for more details:
+
+https://github.com/google-gemini/deprecated-generative-ai-python/blob/main/README.md
+
+  import google.generativeai as genai
+INFO:     Started server process [29101]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+WARNING:  StatReload detected changes in 'routers/risk.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [29101]
+/Users/harshithhh/Desktop/clinical-flow/backend/core/llm_service.py:9: FutureWarning: 
+
+All support for the `google.generativeai` package has ended. It will no longer be receiving 
+updates or bug fixes. Please switch to the `google.genai` package as soon as possible.
+See README for more details:
+
+https://github.com/google-gemini/deprecated-generative-ai-python/blob/main/README.md
+
+  import google.generativeai as genai
+INFO:     Started server process [29120]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+WARNING:  StatReload detected changes in 'ml/advanced_model.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [29120]
+/Users/harshithhh/Desktop/clinical-flow/backend/core/llm_service.py:9: FutureWarning: 
+
+All support for the `google.generativeai` package has ended. It will no longer be receiving 
+updates or bug fixes. Please switch to the `google.genai` package as soon as possible.
+See README for more details:
+
+https://github.com/google-gemini/deprecated-generative-ai-python/blob/main/README.md
+
+  import google.generativeai as genai
+INFO:     Started server process [29884]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+ [WARN] LLM Service: running in OFFLINE/MOCK mode.
+   └── Reason: GEMINI_API_KEY not found in environment.
+[WARN] XGBoost not available (XGBoostError), using GradientBoosting fallback
+✅ Loaded model v2.0.0
+INFO:     127.0.0.1:52092 - "GET /analytics/ml-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52101 - "GET /analytics/ml-predict/01 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52107 - "GET /analytics/risk-monitor HTTP/1.1" 200 OK
+⚠️ SHAP explanation failed: only integer scalar arrays can be converted to a scalar index
+INFO:     127.0.0.1:52115 - "GET /analytics/ml-predict/Site%201042 HTTP/1.1" 200 OK
+[WARN] LLM Report Generator: Using template fallback
+INFO:     127.0.0.1:52122 - "POST /reports/generate/executive HTTP/1.1" 200 OK
+⚠️ SHAP explanation failed: only integer scalar arrays can be converted to a scalar index
+INFO:     127.0.0.1:52128 - "POST /reports/generate/site/Site%201042 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52168 - "GET /analytics/ml-status HTTP/1.1" 200 OK
+⚠️ SHAP explanation failed: only integer scalar arrays can be converted to a scalar index
+INFO:     127.0.0.1:52169 - "GET /analytics/ml-predict/Site%201042 HTTP/1.1" 200 OK
+[ERROR] Prediction failed for Site 3: float() argument must be a string or a real number, not 'dict'
+INFO:     127.0.0.1:52171 - "GET /analytics/ml-predict/Site%203 HTTP/1.1" 200 OK
+WARNING:  StatReload detected changes in 'ml/feature_engineering.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [29884]
+/Users/harshithhh/Desktop/clinical-flow/backend/core/llm_service.py:9: FutureWarning: 
+
+All support for the `google.generativeai` package has ended. It will no longer be receiving 
+updates or bug fixes. Please switch to the `google.genai` package as soon as possible.
+See README for more details:
+
+https://github.com/google-gemini/deprecated-generative-ai-python/blob/main/README.md
+
+  import google.generativeai as genai
+INFO:     Started server process [33395]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+ [WARN] LLM Service: running in OFFLINE/MOCK mode.
+   └── Reason: GEMINI_API_KEY not found in environment.
+[WARN] XGBoost not available (XGBoostError), using GradientBoosting fallback
+✅ Loaded model v2.0.0
+[ERROR] Prediction failed for Site 3: float() argument must be a string or a real number, not 'dict'
+INFO:     127.0.0.1:52197 - "GET /analytics/ml-predict/Site%203 HTTP/1.1" 200 OK
+🚀 Starting Advanced Model Training Pipeline...
+📊 Extracting features...
+📈 Dataset: 1075 sites, 33 features
+📊 Label distribution: {np.int64(0): np.int64(381), np.int64(1): np.int64(98), np.int64(2): np.int64(596)}
+🔧 Training ensemble model...
+
+📊 Model Evaluation:
+   Accuracy: 100.00%
+
+              precision    recall  f1-score   support
+
+         Low       1.00      1.00      1.00        76
+      Medium       1.00      1.00      1.00        20
+        High       1.00      1.00      1.00       119
+
+    accuracy                           1.00       215
+   macro avg       1.00      1.00      1.00       215
+weighted avg       1.00      1.00      1.00       215
+
+🔍 Creating SHAP explainer...
+💾 Saving model artifacts...
+   ✅ Model saved to /Users/harshithhh/Desktop/clinical-flow/backend/ml/advanced_risk_model.pkl
+   ✅ SHAP explainer saved to /Users/harshithhh/Desktop/clinical-flow/backend/ml/shap_explainer.pkl
+INFO:     127.0.0.1:52205 - "POST /analytics/ml-retrain HTTP/1.1" 200 OK
+[ERROR] Prediction failed for Site 3: float() argument must be a string or a real number, not 'dict'
+INFO:     127.0.0.1:52212 - "GET /analytics/ml-predict/Site%203 HTTP/1.1" 200 OK
+⚠️ SHAP explanation failed: only integer scalar arrays can be converted to a scalar index
+INFO:     127.0.0.1:52220 - "GET /analytics/ml-predict/12 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52247 - "GET /reports HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52247 - "GET /reports HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52247 - "GET /analytics/ml-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52248 - "GET /analytics/missing-visits HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52252 - "GET /analytics/edrr-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52247 - "GET /analytics/inactivated-audit HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52249 - "GET /analytics/lab-gaps HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52252 - "GET /analytics/cra/logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52248 - "GET /analytics/cra/performance HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52247 - "GET /analytics/cra/underperforming HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52252 - "GET /analytics/risk HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52247 - "GET /analytics/trend HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52247 - "GET /analytics/ml-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52247 - "GET /analytics/missing-visits HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52250 - "GET /analytics/sae-reviews HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52249 - "GET /chat/stats HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52247 - "GET /analytics/edrr-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52250 - "GET /analytics/inactivated-audit HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52247 - "GET /analytics/cra/logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52249 - "GET /analytics/lab-gaps HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52250 - "GET /analytics/cra/performance HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52250 - "GET /analytics/trend HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52249 - "GET /analytics/risk HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52247 - "GET /analytics/cra/underperforming HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52249 - "GET /chat/stats HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52250 - "GET /analytics/sae-reviews HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52251 - "GET /analytics/coding-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52248 - "GET /analytics/score HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52252 - "GET /analytics/readiness HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52248 - "GET /analytics/score HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52251 - "GET /analytics/coding-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52252 - "GET /analytics/readiness HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52258 - "GET /analytics/readiness HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52258 - "GET /analytics/readiness HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52257 - "GET /analytics/risk-monitor HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52259 - "GET /analytics/risk-monitor HTTP/1.1" 200 OK
+[ERROR] Prediction failed for Site 12: float() argument must be a string or a real number, not 'dict'
+INFO:     127.0.0.1:52260 - "GET /analytics/ml-predict/Site%2012 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52280 - "GET /reports/saved HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52280 - "GET /reports/saved HTTP/1.1" 200 OK
+[WARN] LLM Report Generator: Using template fallback
+INFO:     127.0.0.1:52286 - "POST /reports/generate/executive HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52286 - "GET /reports/saved HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52310 - "POST /reports/generate/executive HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52310 - "GET /reports/saved HTTP/1.1" 200 OK
+⚠️ SHAP explanation failed: only integer scalar arrays can be converted to a scalar index
+INFO:     127.0.0.1:52313 - "POST /reports/generate/site/12 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52315 - "GET /analytics/ml-feature-importance HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52316 - "GET /reports/saved HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52348 - "POST /reports/generate/executive HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52348 - "GET /reports/saved HTTP/1.1" 200 OK
+🤖 User Query: Summarize risk for 1075 sites. 598 High Risk. Avg DQI: 65.9. Avg Dataset Readiness: 74.6%.
+📝 Generated SQL: SELECT count(*) as sae_count FROM sae_metrics
+INFO:     127.0.0.1:52355 - "POST /reports/generate HTTP/1.1" 200 OK
+🤖 User Query: Summarize risk for 1075 sites. 598 High Risk. Avg DQI: 65.9. Avg Dataset Readiness: 74.6%.
+📝 Generated SQL: SELECT count(*) as sae_count FROM sae_metrics
+INFO:     127.0.0.1:52360 - "POST /reports/generate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52487 - "GET /reports HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52487 - "GET /reports HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52487 - "GET /analytics/ml-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52487 - "GET /analytics/inactivated-audit HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52488 - "GET /analytics/missing-visits HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52492 - "GET /analytics/edrr-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52489 - "GET /analytics/lab-gaps HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52488 - "GET /analytics/cra/logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52487 - "GET /analytics/cra/performance HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52488 - "GET /analytics/risk HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52488 - "GET /analytics/trend HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52492 - "GET /analytics/cra/underperforming HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52492 - "GET /analytics/ml-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52492 - "GET /analytics/inactivated-audit HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52489 - "GET /chat/stats HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52489 - "GET /analytics/edrr-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52492 - "GET /analytics/missing-visits HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52490 - "GET /analytics/sae-reviews HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52492 - "GET /analytics/cra/logs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52489 - "GET /analytics/lab-gaps HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52489 - "GET /analytics/trend HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52490 - "GET /analytics/cra/performance HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52489 - "GET /analytics/cra/underperforming HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52490 - "GET /chat/stats HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52492 - "GET /analytics/risk HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52489 - "GET /analytics/sae-reviews HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52491 - "GET /analytics/coding-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52487 - "GET /analytics/score HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52488 - "GET /analytics/readiness HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52491 - "GET /analytics/coding-status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52487 - "GET /analytics/score HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52488 - "GET /analytics/readiness HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52487 - "GET /analytics/readiness HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52487 - "GET /analytics/readiness HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52488 - "GET /analytics/risk-monitor HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52487 - "GET /analytics/risk-monitor HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52487 - "GET /reports/saved HTTP/1.1" 200 OK
+INFO:     127.0.0.1:52487 - "GET /reports/saved HTTP/1.1" 200 OK

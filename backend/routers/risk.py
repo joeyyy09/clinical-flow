@@ -1,9 +1,17 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
+from typing import List, Optional
 from core.deps import get_db
 from services.risk_monitor_service import RiskMonitorService
 from services.analytics_service import AnalyticsService
 from services.ml_service_risk import MLRiskService
+
+# Try importing advanced ML service
+try:
+    from services.ml_prediction_service import MLPredictionService
+    HAS_ADVANCED_ML = True
+except ImportError:
+    HAS_ADVANCED_ML = False
 
 router = APIRouter(prefix="/analytics", tags=["Risk & Analytics"])
 
@@ -25,7 +33,72 @@ def get_risk_monitor(db: Session = Depends(get_db)):
 
 @router.get("/ml-status")
 def get_ml_status():
-    return MLRiskService.get_ml_status()
+    """Get status of both legacy and advanced ML models."""
+    legacy_status = MLRiskService.get_ml_status()
+    
+    if HAS_ADVANCED_ML:
+        advanced_status = MLPredictionService.get_model_status()
+        return {
+            "legacy": legacy_status,
+            "advanced": advanced_status,
+            "active_model": "advanced" if advanced_status.get("status") == "operational" else "legacy"
+        }
+    
+    return {
+        "legacy": legacy_status,
+        "advanced": {"status": "not_available"},
+        "active_model": "legacy"
+    }
+
+@router.get("/ml-predict/{site_id}")
+def predict_site_risk_advanced(site_id: str):
+    """
+    Get advanced ML prediction with explainability for a specific site.
+    
+    Returns:
+        - risk_level: Predicted risk level (Low/Medium/High)
+        - confidence: Model confidence (0-1)
+        - probability_distribution: Probability for each risk level
+        - top_risk_factors: Explained risk factors with SHAP values
+        - dqi_percentile: Site's DQI percentile ranking
+    """
+    if not HAS_ADVANCED_ML:
+        return {
+            "error": "Advanced ML service not available",
+            "fallback": MLRiskService.predict_site_risk(0, 0, 1)
+        }
+    
+    return MLPredictionService.predict_site_risk(site_id)
+
+@router.get("/ml-predict-batch")
+def predict_batch_risk(site_ids: Optional[str] = Query(default=None)):
+    """
+    Get batch predictions for multiple sites.
+    
+    Args:
+        site_ids: Comma-separated list of site IDs, or None for all sites
+    """
+    if not HAS_ADVANCED_ML:
+        return {"error": "Advanced ML service not available"}
+    
+    ids = site_ids.split(",") if site_ids else None
+    return MLPredictionService.predict_batch(ids)
+
+@router.get("/ml-feature-importance")
+def get_feature_importance():
+    """Get global feature importance rankings from the ML model."""
+    if not HAS_ADVANCED_ML:
+        return {"error": "Advanced ML service not available"}
+    
+    return MLPredictionService.get_feature_importance()
+
+@router.post("/ml-retrain")
+def retrain_ml_model():
+    """Force retrain the ML model with latest data."""
+    if not HAS_ADVANCED_ML:
+        return {"error": "Advanced ML service not available"}
+    
+    return MLPredictionService.retrain_model()
 
 @router.get("/missing-visits")
 def get_missing_visits(db: Session = Depends(get_db)):
