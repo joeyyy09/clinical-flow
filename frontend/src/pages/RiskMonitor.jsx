@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import Modal from '../components/Modal';
 import CommentModal from '../components/CommentModal';
 import SiteDetailsModal from '../components/SiteDetailsModal';
+import AgentExplanationModal from '../components/AgentExplanationModal';
 
 import { useClinicalData } from '../hooks/useClinicalData';
 
@@ -24,6 +25,7 @@ const RiskMonitor = ({ searchQuery = "" }) => {
     const [selectedStudy, setSelectedStudy] = useState('All');
     const [commentModalOpen, setCommentModalOpen] = useState(false);
     const [detailsModalOpen, setDetailsModalOpen] = useState(false);
+    const [agentModalOpen, setAgentModalOpen] = useState(false);
     const [selectedSite, setSelectedSite] = useState(null);
 
     useEffect(() => {
@@ -91,6 +93,15 @@ const RiskMonitor = ({ searchQuery = "" }) => {
             case 'Low': return { color: 'text-emerald-500', icon: Sparkles };
             default: return { color: 'text-slate-400', icon: Sparkles };
         }
+    };
+
+    const getActionStatus = (status) => {
+        if (!status || status === 'No Action') return { color: 'text-slate-400 italic', label: '-' };
+        if (status === 'Urgent') return { color: 'bg-rose-100 text-rose-700 border border-rose-200', label: 'Urgent' };
+        if (status === 'Review') return { color: 'bg-amber-100 text-amber-700 border border-amber-200', label: 'Review' };
+        if (status === 'Resolved') return { color: 'bg-emerald-100 text-emerald-700 border border-emerald-200', label: 'Resolved' };
+        if (status === 'Info') return { color: 'bg-blue-50 text-blue-600 border border-blue-200', label: 'Info' };
+        return { color: 'bg-slate-100 text-slate-600', label: status };
     };
 
     if (loading) return <div className="p-8 text-slate-400">Loading risk analysis engine...</div>;
@@ -180,6 +191,7 @@ const RiskMonitor = ({ searchQuery = "" }) => {
                                     <th className="px-6 py-3">Deviations</th>
                                     <th className="px-6 py-3">Heuristic Risk</th>
                                     <th className="px-6 py-3">AI Prediction</th>
+                                    <th className="px-6 py-3">Status</th>
                                     <th className="px-6 py-3">Recommendation</th>
                                     <th className="px-6 py-3">Actions</th>
                                 </tr>
@@ -227,11 +239,17 @@ const RiskMonitor = ({ searchQuery = "" }) => {
                                                 </span>
                                             </div>
                                         </td>
+                                        <td className="px-6 py-4">
+                                            <span className={`px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wide ${getActionStatus(site.action_status).color}`}>
+                                                {getActionStatus(site.action_status).label}
+                                            </span>
+                                        </td>
                                         <td className="px-6 py-4 text-slate-500 dark:text-slate-400 text-xs italic">{site.recommendation}</td>
                                         <td className="px-6 py-4">
                                             <div className="flex flex-col gap-1">
                                                 <button onClick={() => { setSelectedSite(site.site); setCommentModalOpen(true); }} className="text-blue-600 hover:text-blue-800 text-[10px] font-bold uppercase tracking-wider">Comment</button>
                                                 <button onClick={() => { setSelectedSite(site.site); setDetailsModalOpen(true); }} className="text-indigo-600 hover:text-indigo-800 text-[10px] font-bold uppercase tracking-wider">Patients</button>
+                                                <button onClick={() => { setSelectedSite(site.site); setAgentModalOpen(true); }} className="text-violet-600 hover:text-violet-800 text-[10px] font-bold uppercase tracking-wider flex items-center gap-1"><Sparkles className="w-3 h-3" /> Explain</button>
                                             </div>
                                         </td>
                                     </motion.tr>
@@ -258,8 +276,8 @@ const RiskMonitor = ({ searchQuery = "" }) => {
                             key={study}
                             onClick={() => { setSelectedStudy(study); setFilterOpen(false); }}
                             className={`w-full text-left px-4 py-3 rounded-lg border text-sm font-medium transition-colors ${selectedStudy === study
-                                    ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-500 text-blue-700 dark:text-blue-400'
-                                    : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'
+                                ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-500 text-blue-700 dark:text-blue-400'
+                                : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'
                                 }`}
                         >
                             {study}
@@ -277,6 +295,12 @@ const RiskMonitor = ({ searchQuery = "" }) => {
             <SiteDetailsModal
                 isOpen={detailsModalOpen}
                 onClose={() => setDetailsModalOpen(false)}
+                siteNumber={selectedSite}
+            />
+
+            <AgentExplanationModal
+                isOpen={agentModalOpen}
+                onClose={() => setAgentModalOpen(false)}
                 siteNumber={selectedSite}
             />
         </div>

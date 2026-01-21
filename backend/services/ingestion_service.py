@@ -3,6 +3,7 @@ import os
 import pandas as pd
 import re
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from core.database import SessionLocal, engine
 from core import models
 
@@ -442,6 +443,42 @@ class IngestionService:
                         IngestionService.ingest_edrr_issues(db, full_path)
                     elif "GlobalCoding" in file:
                         IngestionService.ingest_coding_reports(db, full_path)
+        
+        IngestionService.calculate_derived_latencies(db)
         db.close()
         print("✨ Ingestion Pipeline Complete")
+
+    @staticmethod
+    def calculate_derived_latencies(db: Session):
+        print("⚡ Calculating Derived Query Latencies...")
+        try:
+            # Get Max Missing Days per Subject
+            mp_results = db.query(models.MissingPages.subject_name, func.max(models.MissingPages.missing_days))\
+                           .group_by(models.MissingPages.subject_name).all()
+            latency_map = {r[0]: (r[1] or 0) for r in mp_results if r[0]}
+
+            # Get Max Days Outstanding per Subject
+            vp_results = db.query(models.VisitProjection.subject, func.max(models.VisitProjection.days_outstanding))\
+                           .group_by(models.VisitProjection.subject).all()
+            for r in vp_results:
+                subj = r[0]
+                if not subj: continue
+                days = r[1] or 0
+                if days > latency_map.get(subj, 0):
+                    latency_map[subj] = days
+            
+            # Update EDCMetrics
+            # Only if total_queries > 0 (Meaning they HAVE queries to be latent)
+            subjects = db.query(models.EDCMetrics).filter(models.EDCMetrics.total_queries > 0).all()
+            updated_count = 0
+            for s in subjects:
+                if s.subject_id in latency_map:
+                    lat = latency_map[s.subject_id]
+                    if lat > 0:
+                        s.query_latency = lat
+                        updated_count += 1
+            db.commit()
+            print(f"✅ Updated derived latency for {updated_count} subjects having open queries.")
+        except Exception as e:
+            print(f"⚠️ Latency derivation warning: {e}")
 

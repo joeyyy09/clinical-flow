@@ -73,8 +73,66 @@ class AnalyticsService:
             {"month": "Dec", "sae_count": 210}
         ]
 
-    # ... (skipping calculate_data_quality_index site-level update for brevity, but essentially same logic)
+    @staticmethod
+    def calculate_data_quality_index(db: Session, site_id: str) -> int:
+        """Calculates DQI for a specific site."""
+        from sqlalchemy import func
+        
+        # Aggregations for this SITE
+        metrics = db.query(
+            func.sum(models.EDCMetrics.missing_pages).label('missing_pages'),
+            func.sum(models.EDCMetrics.missing_visits).label('missing_visits'),
+            func.sum(models.EDCMetrics.total_queries).label('total_queries'),
+            func.count(models.EDCMetrics.id).label('total_subjects')
+        ).filter(models.EDCMetrics.site_id == site_id).first()
+        
+        if not metrics or not metrics.total_subjects:
+            return 100
+            
+        n_subjects = metrics.total_subjects
+        
+        # 1. Safety Score (40%)
+        pending_saes = db.query(models.SAEMetrics).filter(
+            (models.SAEMetrics.site == site_id) | (models.SAEMetrics.site == f"Site {site_id}"),
+            models.SAEMetrics.review_status != 'Completed'
+        ).count()
+        
+        sae_rate = pending_saes / n_subjects
+        s_safety = max(0, 100 - (sae_rate * 100))
 
+        # 2. Missing Data Score (25%)
+        missing_count = (metrics.missing_pages or 0) + (metrics.missing_visits or 0)
+        missing_rate = missing_count / n_subjects
+        s_missing = max(0, 100 - (missing_rate * 20))
+
+        # 3. Query Score (25%)
+        query_count = metrics.total_queries or 0
+        query_rate = query_count / n_subjects
+        s_queries = max(0, 100 - (query_rate * 10))
+
+        # 4. Coding Score (10%)
+        site_subjects = db.query(models.EDCMetrics.subject_id).filter(models.EDCMetrics.site_id == site_id).all()
+        subject_ids = [s[0] for s in site_subjects]
+        
+        if not subject_ids:
+            s_coding = 100
+        else:
+            uncoded_meddra = db.query(models.MedDRACoding).filter(
+                models.MedDRACoding.subject.in_(subject_ids),
+                models.MedDRACoding.coding_status.ilike('%uncoded%')
+            ).count()
+            
+            uncoded_who = db.query(models.WHODrugCoding).filter(
+                models.WHODrugCoding.subject.in_(subject_ids),
+                models.WHODrugCoding.coding_status.ilike('%uncoded%')
+            ).count()
+            
+            uncoded_count = uncoded_meddra + uncoded_who
+            coding_rate = uncoded_count / n_subjects
+            s_coding = max(0, 100 - (coding_rate * 20))
+
+        dqi = (s_safety * 0.40) + (s_missing * 0.25) + (s_queries * 0.25) + (s_coding * 0.10)
+        return int(dqi)
     @staticmethod
     def check_clean_patient_status(db: Session, subject_id: str) -> bool:
         """

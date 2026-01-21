@@ -15,11 +15,14 @@ class ReportService:
         risk_data = RiskMonitorService.get_detailed_risk_data(db)
         high_risk = len([r for r in risk_data if r['risk_level'] == 'High'])
         
+        avg_dqi = sum(r['dqi'] for r in risk_data)/max(1, len(risk_data))
+        avg_readiness = sum(r.get('milestone_readiness', 0) for r in risk_data)/max(1, len(risk_data))
+        
         try:
-            summary_prompt = f"Summarize the risk status for {len(risk_data)} clinical sites. There are {high_risk} high risk sites. The average DQI is {sum(r['dqi'] for r in risk_data)/len(risk_data):.1f}."
+            summary_prompt = f"Summarize risk for {len(risk_data)} sites. {high_risk} High Risk. Avg DQI: {avg_dqi:.1f}. Avg Dataset Readiness: {avg_readiness:.1f}%."
             ai_summary = agent.query(summary_prompt).get('answer', '')
         except:
-            ai_summary = "AI Summarization unavailable."
+            ai_summary = f"Automated Summary: Analyzed {len(risk_data)} sites. {high_risk} sites are High Risk. The overall Dataset Readiness is {avg_readiness:.1f}%, with an average Data Quality Index of {avg_dqi:.1f}."
 
         report_context = {
             "study_id": "CT-2024-001",
@@ -39,7 +42,7 @@ class ReportService:
         story = []
 
         # Title
-        story.append(Paragraph(f"Clinical Trial Risk Assessment Report", styles['Title']))
+        story.append(Paragraph(f"Clinical Trial Risk & Readiness Report", styles['Title']))
         story.append(Spacer(1, 12))
 
         # Meta Info
@@ -58,12 +61,13 @@ class ReportService:
             story.append(Paragraph("Detailed Site Performance Matrix", styles['Heading2']))
             story.append(Spacer(1, 12))
             
-            table_data = [['Site ID', 'Risk Level', 'DQI', 'SAEs', 'Missing', 'Action']]
+            table_data = [['Site ID', 'Risk', 'DQI', 'Readiness', 'SAEs', 'Missing', 'Action']]
             for site in report_data['sites']:
                 table_data.append([
                     site.get('site', 'N/A'),
                     site.get('risk_level', 'Unknown'),
                     str(site.get('dqi', 'N/A')),
+                    f"{site.get('milestone_readiness', 0)}%",
                     str(site.get('sae_count', 0)),
                     str(site.get('missing_pages', 0)),
                     site.get('recommendation', 'Monitor')[:15] + "..."

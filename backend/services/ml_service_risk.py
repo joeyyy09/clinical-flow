@@ -8,14 +8,26 @@ from typing import Dict
 MODEL_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'ml', 'risk_model.pkl')
 
 class MLRiskService:
+    _model = None
+
+    @classmethod
+    def load_model(cls):
+        if cls._model is None and os.path.exists(MODEL_PATH):
+            try:
+                cls._model = joblib.load(MODEL_PATH)
+            except Exception as e:
+                print(f"Error loading model: {e}")
+        return cls._model
+
     @staticmethod
     def predict_site_risk(missing: int, sae: int, subjects: int) -> str:
         """Uses the trained Random Forest model to predict site risk level."""
-        if not os.path.exists(MODEL_PATH):
+        model = MLRiskService.load_model()
+        
+        if model is None:
             return "N/A"
         
         try:
-            model = joblib.load(MODEL_PATH)
             review_rate = 0.5 # Default mock
             missing_per_sub = missing / max(1, subjects)
             
@@ -24,7 +36,7 @@ class MLRiskService:
             
             return ["Low", "Medium", "High"][int(pred)]
         except Exception as e:
-            print(f"ML Inference Error: {e}")
+            # print(f"ML Inference Error: {e}") # Reduce logging spam
             return "Error"
 
     @staticmethod

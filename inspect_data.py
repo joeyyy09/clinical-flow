@@ -12,18 +12,16 @@ patterns = [
     "*Compiled_EDRR*"
 ]
 
-base_dir = "/Users/harshithhh/Desktop/Nest-Assignment/data/QC Anonymized Study Files"
+base_dir = "data"
 
 def find_first_file(pattern):
-    # recursive search
     for root, dirs, files in os.walk(base_dir):
         for file in files:
-            if any(x in file for x in pattern.replace("*","").split(" ")): # Simple fuzzy match since names vary
-                if "SAE Dashboard" in pattern and "SAE Dashboard" in file: return os.path.join(root, file)
-                if "Global_Missing_Pages" in pattern and "Global_Missing_Pages" in file: return os.path.join(root, file)
-                if "Visit Projection Tracker" in pattern and "Visit Projection Tracker" in file: return os.path.join(root, file)
-                if "EDC_Metrics" in pattern and "EDC_Metrics" in file: return os.path.join(root, file)
-                if "Compiled_EDRR" in pattern and "Compiled_EDRR" in file: return os.path.join(root, file)
+            if file.startswith("~$"): continue
+            # Check pattern match
+            keyword = pattern.replace("*", "")
+            if keyword in file:
+                 return os.path.join(root, file)
     return None
 
 print("Scanning file headers...")

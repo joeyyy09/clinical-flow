@@ -12,8 +12,8 @@ class SAEMetrics(Base):
     id = Column(Integer, primary_key=True, index=True)
     study_id = Column(String, index=True)
     country = Column(String)
-    site = Column(String)
-    patient_id = Column(String)
+    site = Column(String, index=True)
+    patient_id = Column(String, index=True)
     review_status = Column(String)
     action_status = Column(String)
     # SAE Dashboard tracking fields
@@ -26,8 +26,8 @@ class MissingPages(Base):
     __tablename__ = "missing_pages"
     id = Column(Integer, primary_key=True, index=True)
     study_id = Column(String, index=True)
-    site_number = Column(String)
-    subject_name = Column(String)
+    site_number = Column(String, index=True)
+    subject_name = Column(String, index=True)
     form_name = Column(String)
     visit_date = Column(String) 
     missing_days = Column(Integer)
@@ -116,6 +116,7 @@ class EDCMetrics(Base):
     coding_queries = Column(Integer, default=0)
     safety_queries = Column(Integer, default=0)
     total_queries = Column(Integer, default=0)
+    query_latency = Column(Integer, default=0) # Derived from Visit/Page Overdue (Proxy for Query Age)
     
     # Verification & Lock
     crfs_verified = Column(Integer, default=0)
@@ -148,7 +149,7 @@ class InactivatedForm(Base):
     id = Column(Integer, primary_key=True, index=True)
     study_id = Column(String, index=True)
     country = Column(String)
-    site = Column(String)
+    site = Column(String, index=True)
     subject = Column(String, index=True)
     folder = Column(String)
     form = Column(String)
