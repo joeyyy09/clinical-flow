@@ -7,12 +7,18 @@ sys.path.append(os.path.join(os.getcwd(), 'backend'))
 
 from services.ingestion_service import IngestionService
 from ml.data_processor import extract_features
+# Add database initialization
+from core.database import engine, Base
 import joblib
 from sklearn.ensemble import RandomForestClassifier
 import pandas as pd
 
 def main():
     print("🚀 Starting Batch Processing...")
+    
+    # Initialize DB Tables if they don't exist
+    Base.metadata.create_all(bind=engine)
+    print("✅ Database tables created.")
     
     # 1. Run Ingestion for all studies
     IngestionService.run_full_pipeline()

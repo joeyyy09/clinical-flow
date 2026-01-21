@@ -10,78 +10,140 @@ from services.ml_service_risk import MLRiskService
 class RiskMonitorService:
     @staticmethod
     def get_risk_heatmap_data(db: Session) -> List[Dict]:
-        """Aggregates missing pages for heatmap visualization."""
-        results = db.query(
-            models.MissingPages.site_number, 
-            func.count(models.MissingPages.id).label('missing_count')
-        ).group_by(models.MissingPages.site_number).order_by(func.count(models.MissingPages.id).desc()).limit(10).all()
+        """
+        Aggregates site risk scores for heatmap visualization using fast aggregation.
+        """
+        # Fast aggregation using SQL instead of per-site DQI calculation
+        from sqlalchemy import func
         
-        return [{"site": r[0], "risk_score": r[1]} for r in results]
+        results_raw = db.query(
+            models.EDCMetrics.site_id,
+            func.sum(models.EDCMetrics.missing_pages + models.EDCMetrics.missing_visits + 
+                    models.EDCMetrics.total_queries + models.EDCMetrics.protocol_deviations).label('risk_score')
+        ).group_by(models.EDCMetrics.site_id)\
+         .order_by(func.sum(models.EDCMetrics.missing_pages + models.EDCMetrics.missing_visits + 
+                           models.EDCMetrics.total_queries + models.EDCMetrics.protocol_deviations).desc())\
+         .limit(10)\
+         .all()
+        
+        return [{"site": r.site_id, "risk_score": int(r.risk_score or 0)} for r in results_raw]
 
     @staticmethod
     def get_detailed_risk_data(db: Session) -> List[Dict]:
-        """Aggregates multi-source risk metrics for all sites based on URD requirements."""
-        # Get sites from all metrics tables to be comprehensive
-        sae_sites = db.query(models.SAEMetrics.site).distinct().all()
-        missing_sites = db.query(models.MissingPages.site_number).distinct().all()
-        edc_sites = db.query(models.EDCMetrics.site_id).distinct().all()
-        
-        all_sites = list(set([str(s[0]) for s in sae_sites] + [str(s[0]) for s in missing_sites] + [str(s[0]) for s in edc_sites]))
+        """Aggregates multi-source risk metrics for all sites based on URD requirements using Real Data."""
+        # 1. Get all unique sites from EDCMetrics (Single Source of Truth)
+        sites = db.query(models.EDCMetrics.site_id, models.EDCMetrics.study_id, models.EDCMetrics.country).distinct().all()
         
         results = []
-        for site in all_sites[:50]: # Limit for performance in this view
-            # 1. Base Metrics
-            sae_count = db.query(models.SAEMetrics).filter(models.SAEMetrics.site.contains(site)).count()
-            missing = db.query(models.MissingPages).filter(models.MissingPages.site_number == site).count()
-            subjects = db.query(models.EDCMetrics).filter(models.EDCMetrics.site_id == site).count()
-            
-            # 2. Derived Metrics (URD requirements)
-            # DQI (Data Quality Index)
-            dqi = AnalyticsService.calculate_data_quality_index(db, site)
-            
-            # Clean Patient Rate: Subjects with 0 missing and 0 pending SAEs
-            # (Note: In real scale this would be a single complex query or pre-calculated)
-            clean_patients = 0
-            if subjects > 0:
-                # Mock high resolution check for speed or sub-query
-                clean_patients = max(0, subjects - (missing // 3) - (sae_count // 2))
-                clean_patient_rate = int((clean_patients / subjects) * 100)
-            else:
-                clean_patient_rate = 100 if missing == 0 else 0
-            
-            # Query Latency & Resolution (Mocked based on site density)
-            query_latency = random.randint(3, 20)
-            query_resolution_rate = max(60, 100 - (missing * 2)) 
-            
-            # Protocol Deviations
-            protocol_deviations = random.randint(0, 10) if sae_count > 2 else random.randint(0, 2)
-            
-            # 3. Determine Risk level (Weighted heuristic)
-            risk_score = (missing * 0.3) + (sae_count * 2.5) + (protocol_deviations * 5) + (query_latency * 0.5)
-            risk_level = "High" if risk_score > 80 or dqi < 50 else "Medium" if risk_score > 40 else "Low"
-            
-            # 4. Milestone Readiness (% readiness for Lock/Submission)
-            milestone_readiness = min(100, int((dqi * 0.7) + (clean_patient_rate * 0.3)))
+        for site_row in sites:
+            site_id = site_row.site_id
+            study_id = site_row.study_id
+            country = site_row.country or "Unknown"
 
-            study_map = ["Oncology Study A", "Cardiovascular Study B", "Neurology Study C"]
-            study_id = study_map[hash(site) % 3]
+            # Get all subjects for this site
+            site_subjects = db.query(models.EDCMetrics).filter(models.EDCMetrics.site_id == site_id).all()
+            subject_count = len(site_subjects)
+            
+            if subject_count == 0:
+                continue
+
+            # 2. Aggregate Metrics
+            # Base metrics from EDCMetrics
+            edc_missing = sum(s.missing_pages for s in site_subjects)
+            edc_sae = sum(s.esae_review_dm + s.esae_review_safety for s in site_subjects)
+            
+            # Cross-reference with global tables (Legacy/Detail tables)
+            # Normalize Site ID: "Site 14" -> "14", "014" -> "14"
+            def normalize_site(s_id):
+                return str(s_id).lower().replace('site', '').strip().lstrip('0')
+                
+            norm_id = normalize_site(site_id)
+            
+            # Fallback 1: Missing Pages Table
+            # Query all sites and filter in python if needed, or query specifically
+            # Note: MissingPages table has 'site_number' like "Site 14"
+            # We assume site_number in MissingPages needs normalization to match EDCMetrics site_id
+            # Optimization: could cache this mapping, but for now we query.
+            # SQLite doesn't have great regex, so we fetch all missing pages sites and match in Py
+            # BUT for performance, let's just try simple matches
+            
+            # Direct match or "Site {id}"
+            missing_count_global = db.query(models.MissingPages).filter(
+                (models.MissingPages.site_number == site_id) | 
+                (models.MissingPages.site_number == f"Site {site_id}")
+            ).count()
+            
+            # Fallback 2: SAE Metrics Table
+            sae_count_global = db.query(models.SAEMetrics).filter(
+                (models.SAEMetrics.site == site_id) | 
+                (models.SAEMetrics.site == f"Site {site_id}")
+            ).count()
+            
+            # Consolidate (Use Max to avoid under-reporting if one source is empty)
+            missing_pages = max(edc_missing, missing_count_global)
+            sae_count = max(edc_sae, sae_count_global)
+            
+            missing_visits = sum(s.missing_visits for s in site_subjects)
+            total_queries = sum(s.total_queries for s in site_subjects)
+            protocol_deviations = sum(s.protocol_deviations for s in site_subjects) 
+            
+            # 3. Derived Metrics (URD requirements)
+            # DQI (Data Quality Index) - using the strict logic in AnalyticsService
+            dqi = AnalyticsService.calculate_data_quality_index(db, site_id)
+            
+            # Clean Patient Rate
+            clean_count = 0
+            for s in site_subjects:
+                if AnalyticsService.check_clean_patient_status(db, s.subject_id):
+                    clean_count += 1
+            
+            clean_patient_rate = int((clean_count / subject_count) * 100)
+            
+            # Query Latency & Resolution
+            # We don't have "latency days" in EDC metrics, but we have "Overdue" vs "Closed" in theory?
+            # The current schema doesn't have "latency". We will use "Overdue Signatures" as a proxy for "slowness"
+            # or just map "total_queries" for now.
+            query_resolution_rate = 0 # Placeholder if we don't have 'closed_queries'
+            # If we had 'answered_queries' vs 'total', we could calc rate.
+            # Using 'crfs_locked' as a proxy for 'done'? No.
+            # Let's mock resolution rate STRICTLY as 100 - (Open/Total * 100).
+            # We have 'total_queries'. We assume open if not specified? 
+            # In new schema we have breakdown but not explicit "Closed queries" count.
+            # Let's use 0 as conservative if no data.
+            
+            # 4. Determine Risk level
+            # Using DQI as primary driver per URD
+            if dqi < 50:
+                risk_level = "High"
+            elif dqi < 80:
+                risk_level = "Medium"
+            else:
+                risk_level = "Low"
+            
+            # Override for critical safety
+            if sae_count > 0 and dqi < 70:
+                risk_level = "High"
+
+            # 5. Milestone Readiness (% readiness for Lock/Submission)
+            # Driven by Clean Patient Rate
+            milestone_readiness = clean_patient_rate
 
             results.append({
-                "site": site,
-                "country": "Mock Region",
+                "site": site_id,
+                "country": country,
                 "study_id": study_id,
                 "sae_count": sae_count,
-                "missing_pages": missing,
-                "subject_count": subjects,
-                "query_latency": query_latency,
+                "missing_pages": missing_pages,
+                "subject_count": subject_count,
+                "query_latency": 0, # Not available in current raw data
                 "query_resolution_rate": query_resolution_rate,
                 "protocol_deviations": protocol_deviations,
                 "clean_patient_rate": clean_patient_rate,
                 "risk_level": risk_level,
-                "predicted_risk": MLRiskService.predict_site_risk(missing, sae_count, subjects),
+                "predicted_risk": MLRiskService.predict_site_risk(missing_pages, sae_count, subject_count),
                 "dqi": dqi,
                 "milestone_readiness": milestone_readiness,
-                "recommendation": RiskMonitorService.generate_recommendation(risk_level, missing, sae_count, protocol_deviations)
+                "recommendation": RiskMonitorService.generate_recommendation(risk_level, missing_pages, sae_count, protocol_deviations)
             })
             
         # Sort by dqi (lowest first) to show riskier sites at top

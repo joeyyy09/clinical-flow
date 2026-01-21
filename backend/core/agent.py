@@ -92,10 +92,51 @@ class ClinicalAgent:
 
     def get_summary(self):
         """
-        Provides a high-level summary of the clinical trial data.
-        
-        Returns:
-            dict: The result of a general summary query.
+        Provides a high-level summary of the clinical trial data for the dashboard.
+        Returns strict format for frontend: [ {Metric: name, Value: count}, ... ]
         """
-        # Fallback to simple summary if needed
-        return self.query("summarize the count of all records")
+        try:
+            with self.engine.connect() as conn:
+                # 1. Active Subjects (EDC Metrics)
+                subjects_df = pd.read_sql("SELECT COUNT(DISTINCT subject_id) as val FROM edc_metrics", conn)
+                subject_count = int(subjects_df['val'].iloc[0]) if not subjects_df.empty else 0
+                
+                # 2. Missing Pages (Global + EDC)
+                # Naive sum for high level
+                missing_df = pd.read_sql("SELECT SUM(missing_pages) as val FROM edc_metrics", conn)
+                edc_missing = int(missing_df['val'].iloc[0]) if not missing_df.empty and pd.notna(missing_df['val'].iloc[0]) else 0
+                
+                # Global Missing Pages
+                # Note: table name is missing_pages, column missing_days usually acts as count or we count rows?
+                # Actually earlier verification showed 'missing_pages' table has 'site_number' and 'missing_days'.
+                # Let's count rows in missing_pages table as a proxy for "pages missing" or sum 'missing_days' if that's the metric.
+                # Ingestion logic for missing_pages: 
+                # item = models.MissingPages(..., missing_days=row['Missing Days (Integers)'])
+                # So missing_days is likely the count.
+                global_missing_df = pd.read_sql("SELECT SUM(missing_days) as val FROM missing_pages", conn)
+                global_missing = int(global_missing_df['val'].iloc[0]) if not global_missing_df.empty and pd.notna(global_missing_df['val'].iloc[0]) else 0
+                
+                missing_count = max(edc_missing, global_missing)
+                
+                # 3. SAE Records (Global + EDC)
+                # Using EDC sum
+                sae_df_edc = pd.read_sql("SELECT SUM(esae_review_dm + esae_review_safety) as val FROM edc_metrics", conn)
+                edc_sae = int(sae_df_edc['val'].iloc[0]) if not sae_df_edc.empty and pd.notna(sae_df_edc['val'].iloc[0]) else 0
+                
+                # Global SAEs
+                sae_df_global = pd.read_sql("SELECT COUNT(*) as val FROM sae_metrics", conn) 
+                global_sae = int(sae_df_global['val'].iloc[0]) if not sae_df_global.empty else 0
+                
+                sae_count = max(edc_sae, global_sae)
+                
+                return {
+                    "answer": "Dashboard data loaded.",
+                    "data": [
+                        {"Metric": "SAE Records", "Value": sae_count},
+                        {"Metric": "Missing Pages", "Value": missing_count},
+                        {"Metric": "EDC Metrics", "Value": subject_count} # Frontend expects 'EDC Metrics' for subject count
+                    ]
+                }
+        except Exception as e:
+            print(f"Summary Error: {e}")
+            return {"answer": "Error loading metrics", "data": []}

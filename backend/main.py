@@ -25,7 +25,7 @@ app.add_middleware(
 )
 
 # Static Files
-app.mount("/static/ml", StaticFiles(directory="backend/ml"), name="ml")
+app.mount("/static/ml", StaticFiles(directory="ml"), name="ml")
 
 # Include Routers
 app.include_router(chat.router)
