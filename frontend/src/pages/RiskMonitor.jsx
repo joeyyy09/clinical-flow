@@ -187,6 +187,7 @@ const RiskMonitor = ({ searchQuery = "" }) => {
                                     <th className="px-6 py-3 cursor-pointer" onClick={() => requestSort('dqi')}>DQI</th>
                                     <th className="px-6 py-3">Clean Patient %</th>
                                     <th className="px-6 py-3">Readiness</th>
+                                    <th className="px-6 py-3">Latest Action</th>
                                     <th className="px-6 py-3">SAEs</th>
                                     <th className="px-6 py-3">Deviations</th>
                                     <th className="px-6 py-3">Heuristic Risk</th>
@@ -223,6 +224,14 @@ const RiskMonitor = ({ searchQuery = "" }) => {
                                                 </div>
                                                 <span className="text-[10px] text-slate-500">{site.milestone_readiness}% Ready</span>
                                             </div>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <span className={ `px-2 py-0.5 rounded-full text-[10px] font-bold ${ site.action_status === 'Resolved' ? 'bg-emerald-100 text-emerald-700' :
+                                                    site.action_status === 'Urgent' ? 'bg-rose-100 text-rose-700' :
+                                                        'bg-blue-100 text-blue-700'
+                                                }` }>
+                                                { site.action_status || 'Open' }
+                                            </span>
                                         </td>
                                         <td className="px-6 py-4 text-slate-500 dark:text-slate-400 font-medium">{site.sae_count}</td>
                                         <td className="px-6 py-4 text-slate-500 dark:text-slate-400">{site.protocol_deviations}</td>

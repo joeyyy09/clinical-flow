@@ -1,7 +1,8 @@
 
 import React, { useState } from 'react';
-import { LayoutDashboard, AlertTriangle, FileText, Database, Settings, Bell, Search, Activity, Bot, ChevronDown, User, LogOut, X } from 'lucide-react';
+import { LayoutDashboard, AlertTriangle, FileText, Database, Settings, Bell, Search, Activity, Bot, ChevronDown, User, LogOut, X, Sun, Moon } from 'lucide-react';
 import ChatInterface from './ChatInterface';
+import NotificationCenter from './NotificationCenter';
 import { motion, AnimatePresence } from 'framer-motion';
 
 import Modal from './Modal';
@@ -26,22 +27,16 @@ const SidebarItem = ({ icon: Icon, label, active, onClick }) => (
  * Manages the global sidebar navigation, search bar, notifications, 
  * and theme (dark/light mode).
  */
-const AppLayout = ({ children, activeTab, setActiveTab, searchQuery, setSearchQuery, onLogout, darkMode, setDarkMode }) => {
-    const [notificationsOpen, setNotificationsOpen] = useState(false);
+const AppLayout = ( { children, activeTab, setActiveTab, searchQuery, setSearchQuery, onLogout, darkMode, setDarkMode } ) =>
+{
     const [isSidebarOpen, setSidebarOpen] = useState(true);
     const [profileOpen, setProfileOpen] = useState(false);
     const [helpOpen, setHelpOpen] = useState(false);
-    const [settingsOpen, setSettingsOpen] = useState(false);
-    const [unreadCount, setUnreadCount] = useState(2);
+    const [ settingsOpen, setSettingsOpen ] = useState( false );
 
     const handleLogout = () => {
         setProfileOpen(false);
         onLogout();
-    };
-
-    const markAllRead = () => {
-        setUnreadCount(0);
-        setNotificationsOpen(false);
     };
 
     return (
@@ -128,50 +123,7 @@ const AppLayout = ({ children, activeTab, setActiveTab, searchQuery, setSearchQu
                     </div>
 
                     <div className="flex items-center gap-6">
-                        <div className="relative">
-                            <button
-                                onClick={() => setNotificationsOpen(!notificationsOpen)}
-                                className="relative p-2 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors"
-                            >
-                                <Bell className="w-5 h-5" />
-                                {unreadCount > 0 && (
-                                    <span className="absolute top-1 right-2 w-2 h-2 bg-rose-500 rounded-full ring-2 ring-white dark:ring-slate-900 animate-pulse"></span>
-                                )}
-                            </button>
-
-                            {/* Notification Dropdown */}
-                            <AnimatePresence>
-                                {notificationsOpen && (
-                                    <motion.div
-                                        initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                                        className="absolute right-0 mt-2 w-80 bg-white dark:bg-slate-800 rounded-xl shadow-2xl border border-slate-100 dark:border-slate-700 py-2 z-50"
-                                    >
-                                        <div className="px-4 py-2 bg-slate-50 dark:bg-slate-900/50 border-b border-slate-100 dark:border-slate-700 font-semibold text-sm text-slate-700 dark:text-slate-200 flex justify-between items-center">
-                                            <span>Operational Alerts</span>
-                                            {unreadCount > 0 && (
-                                                <button onClick={markAllRead} className="text-xs text-blue-600 dark:text-blue-400 hover:underline">Mark all read</button>
-                                            )}
-                                        </div>
-                                        <div className="max-h-64 overflow-y-auto">
-                                            <div className="px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-700 border-b border-slate-100 dark:border-slate-700 cursor-pointer transition-colors">
-                                                <p className="text-xs font-bold text-rose-600 dark:text-rose-400 mb-1 flex items-center justify-between">
-                                                    High Risk Detected {unreadCount > 0 && <span className="w-1.5 h-1.5 bg-blue-500 rounded-full"></span>}
-                                                </p>
-                                                <p className="text-sm text-slate-600 dark:text-slate-300">Site 14 has exceeded missing pages threshold.</p>
-                                                <p className="text-xs text-slate-400 mt-1">2 mins ago</p>
-                                            </div>
-                                            <div className="px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer transition-colors">
-                                                <p className="text-xs font-bold text-blue-600 dark:text-blue-400 mb-1 flex items-center justify-between">
-                                                    Ingestion Complete {unreadCount > 0 && <span className="w-1.5 h-1.5 bg-blue-500 rounded-full"></span>}
-                                                </p>
-                                                <p className="text-sm text-slate-600 dark:text-slate-300">Study 14 dataset processed successfully.</p>
-                                                <p className="text-xs text-slate-400 mt-1">1 hour ago</p>
-                                            </div>
-                                        </div>
-                                    </motion.div>
-                                )}
-                            </AnimatePresence>
-                        </div>
+                        <NotificationCenter />
 
                         <div className="h-8 w-px bg-slate-200 dark:bg-slate-700"></div>
                         <button

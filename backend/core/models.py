@@ -142,8 +142,19 @@ class SiteComment(Base):
     site_number = Column(String, index=True)
     comment = Column(String)
     tag = Column(String, default="Info")
+    status = Column(String, default="Open") # Open, In Progress, Resolved
+    is_resolved = Column(Integer, default=0) # SQLite boolean proxy
     author = Column(String)
     created_at = Column(DateTime)
+    
+class UserAlert(Base):
+    __tablename__ = "user_alerts"
+    id = Column(Integer, primary_key=True, index=True)
+    user_handle = Column(String, index=True)
+    message = Column(String)
+    is_read = Column(Integer, default=0)
+    comment_id = Column(Integer, ForeignKey("site_comments.id"))
+    created_at = Column(DateTime, default=func.now())
 
 class CRAActivityLog(Base):
     __tablename__ = "cra_activity_logs"

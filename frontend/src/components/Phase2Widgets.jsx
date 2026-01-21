@@ -228,3 +228,129 @@ export const AuditLogWidget = () => {
         </motion.div>
     );
 };
+
+/**
+ * MilestoneReadinessWidget
+ * Displays study-level readiness for statistical deliverables
+ */
+export const MilestoneReadinessWidget = () =>
+{
+    const [ data, setData ] = useState( null );
+    const [ loading, setLoading ] = useState( true );
+
+    useEffect( () =>
+    {
+        fetch( `${ BASE_URL }/analytics/milestone-readiness` )
+            .then( res => res.json() )
+            .then( data =>
+            {
+                setData( data );
+                setLoading( false );
+            } )
+            .catch( err =>
+            {
+                console.error( 'Error fetching readiness:', err );
+                setLoading( false );
+            } );
+    }, [] );
+
+    if ( loading ) return null;
+    if ( !data ) return null;
+
+    const statusColors = {
+        emerald: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800',
+        amber: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border-amber-200 dark:border-amber-800',
+        rose: 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400 border-rose-200 dark:border-rose-800'
+    };
+
+    const statusLabels = {
+        emerald: 'Dataset Ready',
+        amber: 'Nearing Readiness',
+        rose: 'Readiness at Risk'
+    };
+
+    return (
+        <motion.div
+            initial={ { opacity: 0, y: 20 } }
+            animate={ { opacity: 1, y: 0 } }
+            className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 col-span-1 lg:col-span-2"
+        >
+            <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-3">
+                    <div className="p-2 bg-indigo-100 dark:bg-indigo-900/20 rounded-lg">
+                        <ShieldCheck className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+                    </div>
+                    <div>
+                        <h3 className="text-lg font-bold text-slate-800 dark:text-white">Milestone Readiness</h3>
+                        <p className="text-xs text-slate-500">Statistical Deliverables Threshold</p>
+                    </div>
+                </div>
+                <div className={ `px-3 py-1 rounded-full text-xs font-bold border ${ statusColors[ data.status_color ] }` }>
+                    { statusLabels[ data.status_color ] }
+                </div>
+            </div>
+
+            <div className="flex flex-col items-center justify-center py-4">
+                <div className="relative w-40 h-40">
+                    <svg className="w-full h-full" viewBox="0 0 100 100">
+                        {/* Background circle */ }
+                        <circle
+                            className="text-slate-100 dark:text-slate-700"
+                            strokeWidth="8"
+                            stroke="currentColor"
+                            fill="transparent"
+                            r="40"
+                            cx="50"
+                            cy="50"
+                        />
+                        {/* Progress circle */ }
+                        <circle
+                            className={ `transition-all duration-1000 ease-out` }
+                            strokeWidth="8"
+                            strokeDasharray={ 251.2 }
+                            strokeDashoffset={ 251.2 - ( 251.2 * data.readiness_score ) / 100 }
+                            strokeLinecap="round"
+                            stroke={ data.status_color === 'rose' ? '#ef4444' : data.status_color === 'amber' ? '#f59e0b' : '#10b981' }
+                            fill="transparent"
+                            r="40"
+                            cx="50"
+                            cy="50"
+                            style={ { transform: 'rotate(-90deg)', transformOrigin: '50% 50%' } }
+                        />
+                    </svg>
+                    <div className="absolute inset-0 flex flex-col items-center justify-center">
+                        <span className="text-3xl font-black text-slate-800 dark:text-white">{ data.readiness_score }%</span>
+                        <span className="text-[10px] text-slate-500 uppercase tracking-wider">Clean Patients</span>
+                    </div>
+                </div>
+
+                <div className="mt-8 grid grid-cols-2 gap-4 w-full">
+                    <div className="p-3 bg-slate-50 dark:bg-slate-700/30 rounded-xl border border-slate-100 dark:border-slate-700">
+                        <div className="text-xs text-slate-500 mb-1">Total Subjects</div>
+                        <div className="text-xl font-bold text-slate-800 dark:text-white">{ data.total_subjects }</div>
+                    </div>
+                    <div className="p-3 bg-slate-50 dark:bg-slate-700/30 rounded-xl border border-slate-100 dark:border-slate-700">
+                        <div className="text-xs text-slate-500 mb-1">Clean Count</div>
+                        <div className="text-xl font-bold text-slate-800 dark:text-white">{ data.clean_patients }</div>
+                    </div>
+                </div>
+
+                <div className="mt-6 w-full p-4 bg-slate-50 dark:bg-slate-700/30 rounded-xl border border-dashed border-slate-200 dark:border-slate-700">
+                    <div className="flex items-center justify-between text-xs text-slate-500 mb-2">
+                        <span>Readiness Threshold</span>
+                        <span className="font-bold text-slate-700 dark:text-slate-300">{ data.threshold }%</span>
+                    </div>
+                    <div className="h-1.5 w-full bg-slate-200 dark:bg-slate-600 rounded-full overflow-hidden">
+                        <div
+                            className="h-full bg-indigo-500"
+                            style={ { width: `${ data.threshold }%` } }
+                        />
+                    </div>
+                    <p className="mt-3 text-[10px] text-slate-500 leading-relaxed italic">
+                        * A patient is considered "Clean" when all visits are complete, and there are no open queries, pending SAEs, or uncoded medical terms.
+                    </p>
+                </div>
+            </div>
+        </motion.div>
+    );
+};

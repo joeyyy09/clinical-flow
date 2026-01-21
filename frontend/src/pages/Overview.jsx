@@ -4,7 +4,7 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { ArrowUpRight, ArrowDownRight, Users, FileWarning, Activity, FileText, Brain, Target, ShieldCheck, Sparkles } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { MissingVisitsWidget, LabQualityWidget, SAEReviewWidget } from '../components/DataQualityWidgets';
-import { CodingStatusWidget, EDRRWidget, AuditLogWidget } from '../components/Phase2Widgets';
+import { CodingStatusWidget, EDRRWidget, AuditLogWidget, MilestoneReadinessWidget } from '../components/Phase2Widgets';
 import { CRAPerformanceWidget, CRAActivityFeed, UnderperformingSitesWidget } from '../components/CRAPerformanceWidgets';
 
 /**
@@ -222,7 +222,8 @@ const Overview = ({ searchQuery }) => {
       </div>
 
       {/* Detailed Coding & Audit Widgets */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mt-6 text-slate-800 dark:text-white">
+        <MilestoneReadinessWidget />
         <CodingStatusWidget />
         <EDRRWidget />
         <AuditLogWidget />

@@ -173,4 +173,38 @@ class AnalyticsService:
         if uncoded_who > 0: return False
         
         return True
-
+    @staticmethod
+    def get_milestone_readiness(db: Session, threshold: float = 0.95) -> Dict:
+        """
+        Calculates study-level readiness for statistical deliverables.
+        Target: 95% Clean Patients.
+        """
+        subjects = db.query(models.EDCMetrics.subject_id).all()
+        total_subjects = len(subjects)
+        
+        if total_subjects == 0:
+            return {
+                "total_subjects": 0,
+                "clean_patients": 0,
+                "readiness_score": 0,
+                "threshold": threshold,
+                "is_ready": False,
+                "status_color": "red"
+            }
+            
+        clean_count = 0
+        for (subject_id,) in subjects:
+            if AnalyticsService.check_clean_patient_status(db, subject_id):
+                clean_count += 1
+                
+        readiness_score = (clean_count / total_subjects)
+        is_ready = readiness_score >= threshold
+        
+        return {
+            "total_subjects": total_subjects,
+            "clean_patients": clean_count,
+            "readiness_score": int(readiness_score * 100),
+            "threshold": int(threshold * 100),
+            "is_ready": is_ready,
+            "status_color": "emerald" if is_ready else "amber" if readiness_score > (threshold - 0.1) else "rose"
+        }

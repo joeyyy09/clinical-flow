@@ -164,3 +164,8 @@ def get_inactivated_audit(db: Session = Depends(get_db)):
     except Exception as e:
         print(f"Error in inactivated-audit: {e}")
         return []
+
+@router.get("/milestone-readiness")
+def get_milestone_readiness(db: Session = Depends(get_db)):
+    """Returns study-level readiness for statistical deliverables"""
+    return AnalyticsService.get_milestone_readiness(db)
