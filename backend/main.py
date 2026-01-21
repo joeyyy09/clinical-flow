@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 import os
 
 # Routers
-from routers import risk, chat, ingestion, reports, comments, agent
+from routers import risk, chat, ingestion, reports, comments, agent, cra
 
 load_dotenv()
 
@@ -34,6 +34,7 @@ app.include_router(ingestion.router)
 app.include_router(reports.router)
 app.include_router(comments.router)
 app.include_router(agent.router)
+app.include_router(cra.router)
 
 @app.get("/")
 def read_root():

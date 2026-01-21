@@ -238,7 +238,7 @@ class IngestionService:
                     crfs_overdue_90=get_int(row, ['CRFs overdue for signs beyond 90 days of Data entry']),
                     broken_signatures=get_int(row, ['Broken Signatures']),
                     never_signed=get_int(row, ['CRFs Never Signed']),
-                    
+                    queries_resolved=get_int(row, ['# Queries Resolved', 'Queries Resolved', 'Resolved Queries']),
                     responsible_lf=str(IngestionService.get_column_value(row, ['Responsible LF for action']))
                 )
                 db.add(item)

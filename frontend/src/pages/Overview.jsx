@@ -5,6 +5,7 @@ import { ArrowUpRight, ArrowDownRight, Users, FileWarning, Activity, FileText, B
 import { motion } from 'framer-motion';
 import { MissingVisitsWidget, LabQualityWidget, SAEReviewWidget } from '../components/DataQualityWidgets';
 import { CodingStatusWidget, EDRRWidget, AuditLogWidget } from '../components/Phase2Widgets';
+import { CRAPerformanceWidget, CRAActivityFeed, UnderperformingSitesWidget } from '../components/CRAPerformanceWidgets';
 
 /**
  * MetricCard Component
@@ -225,6 +226,16 @@ const Overview = ({ searchQuery }) => {
         <CodingStatusWidget />
         <EDRRWidget />
         <AuditLogWidget />
+      </div>
+
+      {/* CRA Performance & Activity Logs */ }
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6 pb-12">
+        <CRAPerformanceWidget />
+        <CRAActivityFeed />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6 pb-12">
+        <UnderperformingSitesWidget />
       </div>
     </div>
   );

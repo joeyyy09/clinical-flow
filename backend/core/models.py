@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, Date
+from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, Date, func
 from sqlalchemy.orm import relationship
 from .database import Base
 
@@ -134,6 +134,7 @@ class EDCMetrics(Base):
     never_signed = Column(Integer, default=0)
     
     responsible_lf = Column(String)
+    queries_resolved = Column(Integer, default=0)
 
 class SiteComment(Base):
     __tablename__ = "site_comments"
@@ -143,6 +144,15 @@ class SiteComment(Base):
     tag = Column(String, default="Info")
     author = Column(String)
     created_at = Column(DateTime)
+
+class CRAActivityLog(Base):
+    __tablename__ = "cra_activity_logs"
+    id = Column(Integer, primary_key=True, index=True)
+    cra_name = Column(String, index=True)
+    site_id = Column(String, index=True)
+    action = Column(String)
+    details = Column(String)
+    timestamp = Column(DateTime, default=func.now() if 'func' in globals() else None) # Need to ensure func is imported or handled
 
 class InactivatedForm(Base):
     __tablename__ = "inactivated_forms"
