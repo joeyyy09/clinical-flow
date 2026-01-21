@@ -20,7 +20,7 @@ import { useClinicalData } from '../hooks/useClinicalData';
  * @param {string} props.searchQuery - The current search query from the global header.
  */
 const RiskMonitor = ({ searchQuery = "" }) => {
-    const { riskData, loading, fetchRiskMonitorData, generateReport } = useClinicalData();
+    const { riskData, readiness, loading, fetchRiskMonitorData, generateReport } = useClinicalData();
     const [filterOpen, setFilterOpen] = useState(false);
     const [selectedStudy, setSelectedStudy] = useState('All');
     const [commentModalOpen, setCommentModalOpen] = useState(false);
@@ -159,15 +159,24 @@ const RiskMonitor = ({ searchQuery = "" }) => {
                         <h3 className="text-xl font-bold text-slate-800 dark:text-white">{riskData.filter(r => (r.clean_patient_rate || 0) > 80).length}</h3>
                     </div>
                 </div>
-                <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-blue-100 dark:border-blue-900/30 shadow-sm flex items-start gap-3">
-                    <div className="p-2.5 bg-blue-50 dark:bg-blue-900/20 rounded-xl text-blue-500">
-                        <TrendingUp className="w-5 h-5" />
+                <div className={ `bg-white dark:bg-slate-800 p-5 rounded-2xl border ${ readiness?.is_ready ? 'border-emerald-100 dark:border-emerald-900/30 shadow-emerald-100/50' : 'border-blue-100 dark:border-blue-900/30' } shadow-sm flex items-start gap-3 transition-all duration-500` }>
+                    <div className={ `p-2.5 rounded-xl ${ readiness?.is_ready ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-500' : 'bg-blue-50 dark:bg-blue-900/20 text-blue-500' }` }>
+                        { readiness?.is_ready ? <CheckCircle className="w-5 h-5" /> : <TrendingUp className="w-5 h-5" /> }
                     </div>
                     <div>
-                        <p className="text-slate-500 dark:text-slate-400 text-xs font-medium">Avg Readiness</p>
-                        <h3 className="text-xl font-bold text-slate-800 dark:text-white">
-                            {riskData.length > 0 ? Math.round(riskData.reduce((acc, curr) => acc + (curr.milestone_readiness || 0), 0) / riskData.length) : 0}%
+                        <div className="flex items-center gap-2">
+                            <p className="text-slate-500 dark:text-slate-400 text-xs font-medium">Study Readiness</p>
+                            { readiness?.is_ready ?
+                                <span className="bg-emerald-500 text-white text-[8px] font-bold px-1 rounded">READY</span> :
+                                <span className="bg-amber-500 text-white text-[8px] font-bold px-1 rounded">IN PROGRESS</span>
+                            }
+                        </div>
+                        <h3 className={ `text-xl font-bold ${ readiness?.is_ready ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-800 dark:text-white' }` }>
+                            { readiness?.readiness_score || 0 }%
                         </h3>
+                        <p className="text-[10px] text-slate-400 mt-1">
+                            Threshold: { readiness?.threshold || 95 }% for Interim Analysis
+                        </p>
                     </div>
                 </div>
             </div>

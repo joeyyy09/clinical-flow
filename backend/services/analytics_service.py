@@ -173,38 +173,66 @@ class AnalyticsService:
         if uncoded_who > 0: return False
         
         return True
+
     @staticmethod
-    def get_milestone_readiness(db: Session, threshold: float = 0.95) -> Dict:
+    def calculate_study_readiness(db: Session, threshold: float = 95.0) -> Dict:
         """
-        Calculates study-level readiness for statistical deliverables.
-        Target: 95% Clean Patients.
+        Calculates Study-level readiness score using Optimized SQL to avoid N+1.
         """
-        subjects = db.query(models.EDCMetrics.subject_id).all()
-        total_subjects = len(subjects)
+        # 1. Total unique subjects
+        total_subjects = db.query(models.EDCMetrics.subject_id).distinct().count()
         
         if total_subjects == 0:
             return {
-                "total_subjects": 0,
+                "total_patients": 0,
                 "clean_patients": 0,
                 "readiness_score": 0,
-                "threshold": threshold,
                 "is_ready": False,
-                "status_color": "red"
+                "threshold": threshold,
+                "status_color": "rose"
             }
-            
-        clean_count = 0
-        for (subject_id,) in subjects:
-            if AnalyticsService.check_clean_patient_status(db, subject_id):
-                clean_count += 1
-                
-        readiness_score = (clean_count / total_subjects)
+
+        # 2. Get subjects who ARE NOT clean
+        # We only care about subjects that are in EDCMetrics (active subjects)
+        active_subjects = db.query(models.EDCMetrics.subject_id).distinct()
+        
+        # Dirty filters
+        dirty_sae = db.query(models.SAEMetrics.patient_id).filter(
+            models.SAEMetrics.review_status != 'Completed',
+            models.SAEMetrics.patient_id.in_(active_subjects)
+        )
+        
+        dirty_meddra = db.query(models.MedDRACoding.subject).filter(
+            models.MedDRACoding.coding_status.ilike('%uncoded%'),
+            models.MedDRACoding.subject.in_(active_subjects)
+        )
+        
+        dirty_who = db.query(models.WHODrugCoding.subject).filter(
+            models.WHODrugCoding.coding_status.ilike('%uncoded%'),
+            models.WHODrugCoding.subject.in_(active_subjects)
+        )
+        
+        dirty_edc = db.query(models.EDCMetrics.subject_id).filter(
+            (models.EDCMetrics.missing_visits > 0) | 
+            (models.EDCMetrics.missing_pages > 0) | 
+            (models.EDCMetrics.total_queries > 0)
+        )
+        
+        # Combine (Union) all dirty subject IDs - Union already handles distinctness
+        dirty_subjects_union = dirty_sae.union(dirty_meddra, dirty_who, dirty_edc)
+        dirty_count = db.query(dirty_subjects_union.subquery()).count()
+        
+        # Clean count is total minus dirty
+        clean_count = max(0, total_subjects - dirty_count)
+        readiness_score = round((clean_count / total_subjects) * 100, 1)
         is_ready = readiness_score >= threshold
         
         return {
-            "total_subjects": total_subjects,
+            "total_patients": total_subjects,
             "clean_patients": clean_count,
-            "readiness_score": int(readiness_score * 100),
-            "threshold": int(threshold * 100),
+            "readiness_score": readiness_score,
             "is_ready": is_ready,
-            "status_color": "emerald" if is_ready else "amber" if readiness_score > (threshold - 0.1) else "rose"
+            "threshold": threshold,
+            "status_color": "emerald" if is_ready else "amber" if readiness_score > 80 else "rose"
         }
+
