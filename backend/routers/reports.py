@@ -15,7 +15,7 @@ from datetime import datetime
 from dataclasses import asdict
 import json
 
-from core.deps import get_db, get_agent
+from core.deps import get_db, get_agent, get_current_user
 from core.agent import ClinicalAgent
 from services.report_service import ReportService
 from services.report_generator_llm import get_report_generator, GeneratedReport, ReportType
@@ -155,7 +155,7 @@ def generate_cra_report(cra_id: str, db: Session = Depends(get_db)):
             "sites": site_ids,
             "total_visits": len([a for a in activities if "visit" in (a.action or "").lower()]),
             "issues_resolved": len([a for a in activities if "resolve" in (a.action or "").lower()]),
-            "avg_response_time": 24,  # Mock - would calculate from timestamps
+            "avg_response_time": 0,  # Metric pending implementation of derived timestamps
             "sites_at_risk": 0  # Would cross-reference with risk data
         }
         

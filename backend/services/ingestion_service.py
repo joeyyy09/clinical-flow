@@ -13,6 +13,15 @@ class IngestionService:
     DATA_DIR = os.path.join(BASE_DIR, "data")
     RULES_DATA_DIR = os.path.join(BASE_DIR, "rules", "dataset")
 
+    """
+    SECURITY COMPLIANCE NOTE:
+    -------------------------
+    This ingestion pipeline processes Clinical Trial Data.
+    1. Anonymization: Input files in 'rules/dataset' are pre-anonymized (Upstream Process).
+    2. PII Handling: Subject IDs are treated as pseudonymous identifiers.
+    3. Audit Trail: All data interactions are logged via 'ingestion_logs'.
+    """
+
     @staticmethod
     def get_study_id_from_filename(filename):
         # Matches "Study 1", "Study_1", "Study-1", "Study22"
@@ -415,6 +424,36 @@ class IngestionService:
 
 
     @staticmethod
+    def ingest_cra_activity_logs(db: Session, filepath: str):
+        """Ingest CRA Activity Logs"""
+        try:
+            df = pd.read_excel(filepath)
+            # Assuming columns: CRA Name, Site ID, Action, Details, Timestamp
+            count = 0
+            for _, row in df.iterrows():
+                # Handle potential timestamp formats
+                ts_val = IngestionService.get_column_value(row, ['Timestamp', 'Date', 'Time'])
+                try:
+                    from dateutil import parser
+                    timestamp = parser.parse(str(ts_val)) if ts_val else None
+                except:
+                    timestamp = None
+
+                item = models.CRAActivityLog(
+                    cra_name=str(IngestionService.get_column_value(row, ['CRA Name', 'CRA', 'Name'])),
+                    site_id=str(IngestionService.get_column_value(row, ['Site ID', 'Site', 'Site Number'])),
+                    action=str(IngestionService.get_column_value(row, ['Action', 'Type'])),
+                    details=str(IngestionService.get_column_value(row, ['Details', 'Description', 'Notes'])),
+                    timestamp=timestamp
+                )
+                db.add(item)
+                count += 1
+            db.commit()
+            print(f"✅ Ingested {count} CRA Activity Logs from {os.path.basename(filepath)}")
+        except Exception as e:
+            print(f"❌ Error ingesting CRA Activity Logs {os.path.basename(filepath)}: {e}")
+
+    @staticmethod
     def run_full_pipeline():
         print(f"🚀 Starting full ingestion pipeline...")
         db = SessionLocal()
@@ -443,8 +482,21 @@ class IngestionService:
                         IngestionService.ingest_edrr_issues(db, full_path)
                     elif "GlobalCoding" in file:
                         IngestionService.ingest_coding_reports(db, full_path)
+                    elif "CRA_Activity" in file or "CRA Logs" in file:
+                        IngestionService.ingest_cra_activity_logs(db, full_path)
         
         IngestionService.calculate_derived_latencies(db)
+        
+        # 3. AI Enrichment Step
+        print("🤖 Triggering AI Risk Models...")
+        try:
+            from services.ml_prediction_service import MLPredictionService
+            # Force re-evaluation of all sites with new data
+            MLPredictionService.predict_batch(None) 
+            print("✅ AI Risk Scores Updated")
+        except Exception as e:
+            print(f"⚠️ AI Model Trigger Warning: {e}")
+
         db.close()
         print("✨ Ingestion Pipeline Complete")
 

@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 from typing import List, Optional
-from core.deps import get_db
+from core.deps import get_db, get_current_user
 from services.risk_monitor_service import RiskMonitorService
 from services.analytics_service import AnalyticsService
 from services.ml_service_risk import MLRiskService
@@ -20,7 +20,8 @@ def get_risk_heatmap(db: Session = Depends(get_db)):
     return RiskMonitorService.get_risk_heatmap_data(db)
 
 @router.get("/score")
-def get_study_score(db: Session = Depends(get_db)):
+def get_study_score(db: Session = Depends(get_db), user: dict = Depends(get_current_user)):
+    """Protected Endpoint: Requires authenticated clinical user."""
     return {"score": AnalyticsService.calculate_study_health_score(db)}
 
 @router.get("/trend")
@@ -211,13 +212,18 @@ def get_coding_status(db: Session = Depends(get_db)):
 def get_edrr_status(db: Session = Depends(get_db)):
     """Top subjects with open issues from EDRR"""
     from core import models
+    from sqlalchemy import func
     try:
-        issues = db.query(models.EDRRIssue)\
-                   .filter(models.EDRRIssue.open_issue_count > 0)\
-                   .order_by(models.EDRRIssue.open_issue_count.desc())\
-                   .limit(10)\
-                   .all()
-        return [{"subject": i.subject, "count": i.open_issue_count} for i in issues]
+        issues = db.query(
+            models.EDRRIssue.subject,
+            func.max(models.EDRRIssue.open_issue_count).label('count')
+        )\
+        .group_by(models.EDRRIssue.subject)\
+        .having(func.max(models.EDRRIssue.open_issue_count) > 0)\
+        .order_by(func.max(models.EDRRIssue.open_issue_count).desc())\
+        .limit(10)\
+        .all()
+        return [{"subject": i.subject, "count": i.count} for i in issues]
     except Exception as e:
         print(f"Error in edrr-status: {e}")
         return []

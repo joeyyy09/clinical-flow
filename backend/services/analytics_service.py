@@ -9,11 +9,12 @@ class AnalyticsService:
     @staticmethod
     def calculate_study_health_score(db: Session, study_id: str = None) -> int:
         """
-        Calculates study DQI (0-100) based on strict weights:
-        - Safety (40%): Pending SAEs
+        Calculates study DQI (0-100) based on Hackathon weights:
         - Missing Data (25%): Missing Pages + Visits
-        - Queries (25%): Total/Open Queries
-        - Coding (10%): Uncoded Terms
+        - Open Queries (20%): Total Queries
+        - Non-Conformant (15%): Total Pages with Non-Conformant Data
+        - SDV/Form Status (20%): Verification Rate
+        - Safety (20%): Pending SAEs
         """
         from sqlalchemy import func
         
@@ -27,39 +28,47 @@ class AnalyticsService:
             func.sum(models.EDCMetrics.missing_pages).label('missing_pages'),
             func.sum(models.EDCMetrics.missing_visits).label('missing_visits'),
             func.sum(models.EDCMetrics.total_queries).label('total_queries'),
+            func.sum(models.EDCMetrics.pages_non_conformant).label('non_conformant'),
+            func.sum(models.EDCMetrics.crfs_verified).label('verified'),
+            func.sum(models.EDCMetrics.pages_entered).label('entered'),
             func.count(models.EDCMetrics.id).label('total_subjects')
         ).first()
-        
-        coding_meddra = db.query(models.MedDRACoding).filter(models.MedDRACoding.coding_status.ilike('%uncoded%')).count()
-        coding_who = db.query(models.WHODrugCoding).filter(models.WHODrugCoding.coding_status.ilike('%uncoded%')).count()
         
         if not edc_metrics or not edc_metrics.total_subjects:
             return 100
 
         n_subjects = edc_metrics.total_subjects
         
-        # 1. Safety Score (40%) - Target: 0 Pending SAEs per patient
-        # Penalty: -10 points per 0.1 pending SAE per patient
-        pending_saes = metrics.pending_saes or 0
-        sae_rate = pending_saes / n_subjects
-        s_safety = max(0, 100 - (sae_rate * 100)) # Very strict: 1 pending SAE/patient = 0 score
-
-        # 2. Missing Data Score (25%) - Target: 0 missing items
+        # 1. Missing Data Score (25%)
         missing_count = (edc_metrics.missing_pages or 0) + (edc_metrics.missing_visits or 0)
         missing_rate = missing_count / n_subjects
-        s_missing = max(0, 100 - (missing_rate * 20)) # 5 missing items/patient = 0 score
+        s_missing = max(0, 100 - (missing_rate * 20)) 
 
-        # 3. Query Score (25%) - Target: 0 queries
+        # 2. Query Score (20%)
         query_count = edc_metrics.total_queries or 0
         query_rate = query_count / n_subjects
-        s_queries = max(0, 100 - (query_rate * 10)) # 10 queries/patient = 0 score
+        s_queries = max(0, 100 - (query_rate * 10)) 
 
-        # 4. Coding Score (10%) - Target: 0 uncoded
-        uncoded_count = coding_meddra + coding_who
-        coding_rate = uncoded_count / n_subjects
-        s_coding = max(0, 100 - (coding_rate * 20)) # 5 uncoded/patient = 0 score
+        # 3. Non-Conformant Data Score (15%)
+        nc_count = edc_metrics.non_conformant or 0
+        nc_rate = nc_count / n_subjects
+        s_nc = max(0, 100 - (nc_rate * 20))
 
-        dqi = (s_safety * 0.40) + (s_missing * 0.25) + (s_queries * 0.25) + (s_coding * 0.10)
+        # 4. SDV/Form Status Score (20%)
+        entered = edc_metrics.entered or 0
+        verified = edc_metrics.verified or 0
+        if entered > 0:
+            sdv_rate = (verified / entered) * 100
+            s_sdv = sdv_rate 
+        else:
+            s_sdv = 100
+
+        # 5. Safety Score (20%)
+        pending_saes = metrics.pending_saes or 0
+        sae_rate = pending_saes / n_subjects
+        s_safety = max(0, 100 - (sae_rate * 100)) 
+
+        dqi = (s_missing * 0.25) + (s_queries * 0.20) + (s_nc * 0.15) + (s_sdv * 0.20) + (s_safety * 0.20)
         return int(dqi)
 
     @staticmethod
@@ -71,7 +80,7 @@ class AnalyticsService:
         import calendar
         from dateutil import parser
         
-        # Default mock if no DB
+        # Return empty structure if no DB
         if not db:
             return [
                 {"month": "Jul", "sae_count": 0},
@@ -128,7 +137,14 @@ class AnalyticsService:
 
     @staticmethod
     def calculate_data_quality_index(db: Session, site_id: str) -> int:
-        """Calculates DQI for a specific site."""
+        """
+        Calculates DQI for a specific site based on Hackathon weights:
+        - Missing Data (25%): Missing Pages + Visits
+        - Open Queries (20%): Total Queries
+        - Non-Conformant (15%): Pages with non-conformant data
+        - SDV/Form Status (20%): Verification rate
+        - Safety (20%): Pending SAEs
+        """
         from sqlalchemy import func
         
         # Aggregations for this SITE
@@ -136,6 +152,9 @@ class AnalyticsService:
             func.sum(models.EDCMetrics.missing_pages).label('missing_pages'),
             func.sum(models.EDCMetrics.missing_visits).label('missing_visits'),
             func.sum(models.EDCMetrics.total_queries).label('total_queries'),
+            func.sum(models.EDCMetrics.pages_non_conformant).label('non_conformant'),
+            func.sum(models.EDCMetrics.crfs_verified).label('verified'),
+            func.sum(models.EDCMetrics.pages_entered).label('entered'),
             func.count(models.EDCMetrics.id).label('total_subjects')
         ).filter(models.EDCMetrics.site_id == site_id).first()
         
@@ -144,47 +163,46 @@ class AnalyticsService:
             
         n_subjects = metrics.total_subjects
         
-        # 1. Safety Score (40%)
+        # 1. Missing Data Score (25%)
+        # Target: 0 missing items
+        missing_count = (metrics.missing_pages or 0) + (metrics.missing_visits or 0)
+        missing_rate = missing_count / n_subjects
+        s_missing = max(0, 100 - (missing_rate * 20)) # Penalty: -20 per missing item/subject
+
+        # 2. Open Query Score (20%)
+        # Target: 0 queries
+        query_count = metrics.total_queries or 0
+        query_rate = query_count / n_subjects
+        s_queries = max(0, 100 - (query_rate * 10)) # Penalty: -10 per query/subject
+        
+        # 3. Non-Conformant Data Score (15%)
+        # Target: 0 non-conformant pages
+        nc_count = metrics.non_conformant or 0
+        nc_rate = nc_count / n_subjects
+        s_nc = max(0, 100 - (nc_rate * 20)) # Penalty: -20 per NC page/subject
+        
+        # 4. SDV/Form Status Score (20%)
+        # Target: 100% verification of entered pages
+        entered = metrics.entered or 0
+        verified = metrics.verified or 0
+        if entered > 0:
+            sdv_rate = (verified / entered) * 100
+            s_sdv = sdv_rate # Direct percentage score
+        else:
+            s_sdv = 100 # No pages entered means nothing to verify
+
+        # 5. Safety Score (20%)
+        # Target: 0 pending SAEs
         pending_saes = db.query(models.SAEMetrics).filter(
             (models.SAEMetrics.site == site_id) | (models.SAEMetrics.site == f"Site {site_id}"),
             models.SAEMetrics.review_status != 'Completed'
         ).count()
         
         sae_rate = pending_saes / n_subjects
-        s_safety = max(0, 100 - (sae_rate * 100))
+        s_safety = max(0, 100 - (sae_rate * 100)) # Strict: 1 pending SAE = 0 score
 
-        # 2. Missing Data Score (25%)
-        missing_count = (metrics.missing_pages or 0) + (metrics.missing_visits or 0)
-        missing_rate = missing_count / n_subjects
-        s_missing = max(0, 100 - (missing_rate * 20))
-
-        # 3. Query Score (25%)
-        query_count = metrics.total_queries or 0
-        query_rate = query_count / n_subjects
-        s_queries = max(0, 100 - (query_rate * 10))
-
-        # 4. Coding Score (10%)
-        site_subjects = db.query(models.EDCMetrics.subject_id).filter(models.EDCMetrics.site_id == site_id).all()
-        subject_ids = [s[0] for s in site_subjects]
-        
-        if not subject_ids:
-            s_coding = 100
-        else:
-            uncoded_meddra = db.query(models.MedDRACoding).filter(
-                models.MedDRACoding.subject.in_(subject_ids),
-                models.MedDRACoding.coding_status.ilike('%uncoded%')
-            ).count()
-            
-            uncoded_who = db.query(models.WHODrugCoding).filter(
-                models.WHODrugCoding.subject.in_(subject_ids),
-                models.WHODrugCoding.coding_status.ilike('%uncoded%')
-            ).count()
-            
-            uncoded_count = uncoded_meddra + uncoded_who
-            coding_rate = uncoded_count / n_subjects
-            s_coding = max(0, 100 - (coding_rate * 20))
-
-        dqi = (s_safety * 0.40) + (s_missing * 0.25) + (s_queries * 0.25) + (s_coding * 0.10)
+        # Weighted Sum
+        dqi = (s_missing * 0.25) + (s_queries * 0.20) + (s_nc * 0.15) + (s_sdv * 0.20) + (s_safety * 0.20)
         return int(dqi)
     @staticmethod
     def check_clean_patient_status(db: Session, subject_id: str) -> bool:

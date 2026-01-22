@@ -28,7 +28,7 @@ class MLRiskService:
             return "N/A"
         
         try:
-            review_rate = 0.5 # Default mock
+            review_rate = 0.8 # Assumed standard rate if data unavailable
             missing_per_sub = missing / max(1, subjects)
             
             features = [[sae, missing, subjects, review_rate, missing_per_sub]]

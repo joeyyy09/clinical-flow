@@ -18,17 +18,16 @@ import { useClinicalData } from '../hooks/useClinicalData';
 const ChatInterface = ({ minimized = false }) => {
   const [isOpen, setIsOpen] = useState(!minimized);
   const { messages, chatLoading: loading, chartData, sendMessage } = useClinicalData();
-  const [ input, setInput ] = useState( '' );
+  const [input, setInput] = useState('');
 
   /**
    * Sends the user's message to the backend AI agent and updates the chat state.
    */
-  const handleSendMessage = async () =>
-  {
+  const handleSendMessage = async () => {
     if (!input.trim()) return;
     const currentInput = input;
     setInput('');
-    await sendMessage( currentInput );
+    await sendMessage(currentInput);
   };
 
   if (!isOpen && minimized) {
@@ -98,6 +97,29 @@ const ChatInterface = ({ minimized = false }) => {
         )}
       </div>
 
+      {/* Suggested Questions */}
+      {messages.length === 0 && (
+        <div className="px-4 pb-2">
+          <p className="text-xs font-semibold text-slate-400 mb-2 uppercase">Suggested Questions</p>
+          <div className="flex flex-wrap gap-2">
+            {[
+              "Show me missing lab data",
+              "Which site has the most SAEs?",
+              "List sites with low query resolution",
+              "Show protocol deviations"
+            ].map((q, i) => (
+              <button
+                key={i}
+                onClick={() => { setInput(q); handleSendMessage(); }}
+                className="text-xs bg-slate-100 dark:bg-slate-700/50 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 px-3 py-1.5 rounded-full transition-colors border border-slate-200 dark:border-slate-600"
+              >
+                {q}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Input */}
       <div className="p-4 border-t dark:border-slate-700 bg-white dark:bg-slate-800 transition-colors">
         <div className="flex gap-2 relative">
@@ -105,12 +127,12 @@ const ChatInterface = ({ minimized = false }) => {
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            onKeyPress={ ( e ) => e.key === 'Enter' && handleSendMessage() }
+            onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
             placeholder="Ask me anything about the data..."
             className="flex-1 bg-slate-100 dark:bg-slate-700 border-none rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-slate-700 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-500 transition-colors"
           />
           <button
-            onClick={ handleSendMessage }
+            onClick={handleSendMessage}
             disabled={loading}
             className="absolute right-2 top-2 bottom-2 bg-blue-600 text-white p-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors shadow-lg shadow-blue-500/30"
           >
