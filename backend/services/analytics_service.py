@@ -63,15 +63,68 @@ class AnalyticsService:
         return int(dqi)
 
     @staticmethod
-    def get_sae_trend():
-        return [
-            {"month": "Jul", "sae_count": 120},
-            {"month": "Aug", "sae_count": 145},
-            {"month": "Sep", "sae_count": 132},
-            {"month": "Oct", "sae_count": 160},
-            {"month": "Nov", "sae_count": 185},
-            {"month": "Dec", "sae_count": 210}
-        ]
+    def get_sae_trend(db: Session = None):
+        """
+        Returns SAE count trends for the last 6 months based on real data.
+        """
+        from datetime import datetime, timedelta
+        import calendar
+        from dateutil import parser
+        
+        # Default mock if no DB
+        if not db:
+            return [
+                {"month": "Jul", "sae_count": 0},
+                {"month": "Aug", "sae_count": 0},
+                {"month": "Sep", "sae_count": 0},
+                {"month": "Oct", "sae_count": 0},
+                {"month": "Nov", "sae_count": 0},
+                {"month": "Dec", "sae_count": 0}
+            ]
+
+        # 1. Get raw timestamps
+        results = db.query(models.SAEMetrics.created_timestamp).all()
+        
+        # 2. Process in Python (safer for SQLite string dates)
+        timestamps = []
+        for r in results:
+            if r[0]:
+                try:
+                    # Handle various formats or ISO string
+                    dt = parser.parse(r[0])
+                    timestamps.append(dt)
+                except:
+                    continue
+        
+        if not timestamps:
+             return [
+                {"month": "Jul", "sae_count": 0},
+                {"month": "Aug", "sae_count": 0},
+                {"month": "Sep", "sae_count": 0},
+                {"month": "Oct", "sae_count": 0},
+                {"month": "Nov", "sae_count": 0},
+                {"month": "Dec", "sae_count": 0}
+            ]
+
+        # 3. Aggregate last 6 months
+        today = datetime.now()
+        trend_data = []
+        
+        # Iterate backwards 5 months + current month
+        for i in range(5, -1, -1):
+            target_date = today - timedelta(days=i*30) # Approx month
+            target_month = target_date.month
+            target_year = target_date.year
+            month_name = calendar.month_abbr[target_month]
+            
+            count = sum(
+                1 for t in timestamps 
+                if t.month == target_month and t.year == target_year
+            )
+            
+            trend_data.append({"month": month_name, "sae_count": count})
+            
+        return trend_data
 
     @staticmethod
     def calculate_data_quality_index(db: Session, site_id: str) -> int:

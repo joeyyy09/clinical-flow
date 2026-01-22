@@ -24,8 +24,8 @@ def get_study_score(db: Session = Depends(get_db)):
     return {"score": AnalyticsService.calculate_study_health_score(db)}
 
 @router.get("/trend")
-def get_trends():
-    return AnalyticsService.get_sae_trend()
+def get_trends(db: Session = Depends(get_db)):
+    return AnalyticsService.get_sae_trend(db)
 
 @router.get("/risk-monitor")
 def get_risk_monitor(db: Session = Depends(get_db)):
@@ -33,22 +33,25 @@ def get_risk_monitor(db: Session = Depends(get_db)):
 
 @router.get("/ml-status")
 def get_ml_status():
-    """Get status of both legacy and advanced ML models."""
-    legacy_status = MLRiskService.get_ml_status()
+    """Get status of ML model (flat structure for frontend compatibility)."""
+    
+    # Default/Legacy status
+    status = MLRiskService.get_ml_status()
     
     if HAS_ADVANCED_ML:
         advanced_status = MLPredictionService.get_model_status()
-        return {
-            "legacy": legacy_status,
-            "advanced": advanced_status,
-            "active_model": "advanced" if advanced_status.get("status") == "operational" else "legacy"
-        }
-    
-    return {
-        "legacy": legacy_status,
-        "advanced": {"status": "not_available"},
-        "active_model": "legacy"
-    }
+        
+        if advanced_status.get("status") == "operational":
+            # Merge advanced metadata but keep the static image paths
+            # The Advanced Model generates these same images in the same location
+            status.update({
+                "model_type": f"Advanced {advanced_status.get('architecture', 'Ensemble')}",
+                "last_trained": advanced_status.get("version", "2.0.0"),
+                "accuracy": advanced_status.get("accuracy"),
+                "n_features": advanced_status.get("n_features")
+            })
+            
+    return status
 
 @router.get("/ml-predict/{site_id}")
 def predict_site_risk_advanced(site_id: str):

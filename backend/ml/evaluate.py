@@ -6,20 +6,22 @@ import pandas as pd
 import joblib
 import os
 
-def generate_visualizations():
-    # Load model and test results (simulated for visualization)
-    model_path = 'backend/ml/risk_model.pkl'
-    if not os.path.exists(model_path):
-        print("Model not found. Run training first.")
-        return
-
-    # Mocking evaluation data for visualization demo
-    y_true = [0, 1, 2, 0, 1, 2, 0, 1, 2, 1, 1, 0, 2, 2, 1]
-    y_pred = [0, 1, 2, 0, 2, 2, 0, 1, 1, 1, 1, 0, 2, 2, 1]
+def generate_visualizations(y_true, y_pred, feature_importances, output_dir='backend/ml'):
+    """
+    Generate and save Confusion Matrix and Feature Importance plots.
     
+    Args:
+        y_true: True labels
+        y_pred: Predicted labels
+        feature_importances: List of dicts with 'feature' and 'importance' keys
+        output_dir: Directory to save images
+    """
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir, exist_ok=True)
+
+    # 1. Confusion Matrix
     cm = confusion_matrix(y_true, y_pred)
     
-    # 1. Confusion Matrix
     plt.figure(figsize=(8, 6))
     sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', 
                 xticklabels=['Low', 'Medium', 'High'], 
@@ -27,23 +29,24 @@ def generate_visualizations():
     plt.title('Clinical Site Risk Prediction - Confusion Matrix')
     plt.ylabel('Actual Risk')
     plt.xlabel('Predicted Risk')
-    plt.savefig('backend/ml/confusion_matrix.png')
+    plt.tight_layout()
+    plt.savefig(os.path.join(output_dir, 'confusion_matrix.png'))
     plt.close()
 
     # 2. Feature Importance
-    model = joblib.load(model_path)
-    features = ['SAEs', 'Missing Pages', 'Enrolled Subjects', 'SAE Review Rate', 'Data Missingness']
-    importance = model.feature_importances_
+    if feature_importances:
+        # Convert to DataFrame for easier plotting
+        df_imp = pd.DataFrame(feature_importances)
+        
+        # Sort by importance
+        df_imp = df_imp.sort_values('importance', ascending=False).head(10)
+        
+        plt.figure(figsize=(10, 6))
+        sns.barplot(x='importance', y='feature', data=df_imp, palette='viridis')
+        plt.title('Key Drivers of Site Risk (Feature Importance)')
+        plt.xlabel('Importance Score')
+        plt.tight_layout()
+        plt.savefig(os.path.join(output_dir, 'feature_importance.png'))
+        plt.close()
     
-    plt.figure(figsize=(10, 6))
-    sns.barplot(x=importance, y=features, palette='viridis')
-    plt.title('Key Drivers of Site Risk (Feature Importance)')
-    plt.xlabel('Impact Score')
-    plt.tight_layout()
-    plt.savefig('backend/ml/feature_importance.png')
-    plt.close()
-    
-    print("Visualizations saved to backend/ml/")
-
-if __name__ == "__main__":
-    generate_visualizations()
+    print(f"✅ Visualizations saved to {output_dir}")

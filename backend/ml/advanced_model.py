@@ -46,6 +46,7 @@ except ImportError:
     print("[WARN] SHAP not installed. Explainability features will use fallback.")
 
 from feature_engineering import FeatureEngineer
+from evaluate import generate_visualizations
 
 
 @dataclass
@@ -240,6 +241,28 @@ class AdvancedRiskModel:
         # 8. Save model
         if save_model:
             self._save_model()
+            
+            # 8a. Generate Visualizations (Real)
+            print("🎨 Generating visualizations...")
+            try:
+                # Get feature importance for visualization
+                rf_model = self.model.named_estimators_['rf']
+                importances = rf_model.feature_importances_
+                
+                feat_imp_list = [
+                    {"feature": name, "importance": float(imp)}
+                    for name, imp in zip(self.feature_names, importances)
+                ]
+                
+                # Call the evaluation script
+                generate_visualizations(
+                    y_test, 
+                    y_pred, 
+                    feat_imp_list, 
+                    output_dir=os.path.join(self.MODEL_DIR)
+                )
+            except Exception as e:
+                print(f"⚠️ Visualization generation failed: {e}")
         
         self.is_trained = True
         self.feature_names = available_features
