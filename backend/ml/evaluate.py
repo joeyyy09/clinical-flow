@@ -20,7 +20,8 @@ def generate_visualizations(y_true, y_pred, feature_importances, output_dir='bac
         os.makedirs(output_dir, exist_ok=True)
 
     # 1. Confusion Matrix
-    cm = confusion_matrix(y_true, y_pred)
+    # Force labels 0, 1, 2 to ensure 3x3 matrix even if some classes are missing
+    cm = confusion_matrix(y_true, y_pred, labels=[0, 1, 2])
     
     plt.figure(figsize=(8, 6))
     sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', 

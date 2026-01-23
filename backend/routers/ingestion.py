@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, UploadFile, File
+from fastapi import APIRouter, Depends, UploadFile, File, BackgroundTasks
 from sqlalchemy.orm import Session
 from core.deps import get_db
 from services.patient_service import PatientService
@@ -14,14 +14,15 @@ def trigger_ingestion():
     return {"message": "Ingestion triggered"}
 
 @router.post("/ingest/file")
-async def ingest_file(file: UploadFile = File(...)):
+async def ingest_file(background_tasks: BackgroundTasks, file: UploadFile = File(...)):
     # Standard uploads directory
     upload_dir = os.path.join(os.getcwd(), "uploads")
     if not os.path.exists(upload_dir): os.makedirs(upload_dir)
     file_location = os.path.join(upload_dir, file.filename)
     try:
         with open(file_location, "wb+") as f: shutil.copyfileobj(file.file, f)
-        IngestionService.run_full_pipeline()
+        # Offload blocking pipeline to background task
+        background_tasks.add_task(IngestionService.run_full_pipeline)
         return {"message": f"Successfully ingested {file.filename}", "status": "processing"}
     except Exception as e:
         return {"message": f"Error: {str(e)}", "status": "error"}

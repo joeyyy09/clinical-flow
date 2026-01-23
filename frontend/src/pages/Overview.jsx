@@ -13,13 +13,23 @@ import { CRAPerformanceWidget, MissingLabDataWidget, UnderperformingSitesWidget 
  * A reusable card for displaying key performance indicators (KPIs).
  * UI includes the metric value, a trend indicator (up/down), and an icon.
  */
-const MetricCard = ({ title, value, change, trend, icon: Icon, color }) => (
+const MetricCard = ({ title, value, change, trend, icon: Icon, color, description }) => (
   <motion.div
     whileHover={{ y: -5 }}
-    className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 flex items-start justify-between transition-colors"
+    className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 flex items-start justify-between transition-colors group relative"
   >
     <div>
-      <p className="text-slate-500 dark:text-slate-400 text-sm font-medium mb-1">{title}</p>
+      <div className="flex items-center gap-2 mb-1">
+        <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">{title}</p>
+        {description && (
+          <div className="group/tooltip relative">
+            <div className="w-4 h-4 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center text-[10px] cursor-help">?</div>
+            <div className="absolute left-full top-0 ml-2 w-48 p-2 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover/tooltip:opacity-100 pointer-events-none z-50 transition-opacity">
+              {description}
+            </div>
+          </div>
+        )}
+      </div>
       <h3 className="text-3xl font-bold text-slate-800 dark:text-white tracking-tight">{value}</h3>
       <div className={`flex items-center gap-1 mt-2 text-xs font-semibold ${trend === 'up' ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
         {trend === 'up' ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
@@ -66,6 +76,8 @@ const RiskHeatmap = ({ data }) => {
     </div>
   )
 }
+import { InteractiveConfusionMatrix, InteractiveFeatureImportance } from '../components/MLWidgets';
+
 const MLStatus = () => {
   const { mlStatus, fetchMLStatus } = useClinicalData();
 
@@ -73,10 +85,18 @@ const MLStatus = () => {
     fetchMLStatus();
   }, [fetchMLStatus]);
 
-  if (!mlStatus) return null;
+  if (!mlStatus) return (
+    <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 transition-colors mt-6 h-48 flex items-center justify-center">
+      <div className="flex flex-col items-center gap-2 text-slate-400">
+        <Brain className="w-8 h-8 animate-pulse text-indigo-400" />
+        <span className="text-sm font-medium">Loading Predictive Model...</span>
+      </div>
+    </div>
+  );
 
   return (
     <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 transition-colors mt-6">
+
       <div className="flex items-center gap-3 mb-6">
         <div className="p-2 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg">
           <Brain className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
@@ -96,27 +116,35 @@ const MLStatus = () => {
           <h4 className="text-sm font-semibold text-slate-600 dark:text-slate-400 mb-4 flex items-center gap-2">
             <Target className="w-4 h-4" /> Feature Drivers (Importance)
           </h4>
-          <img
-            src={`http://127.0.0.1:8000${mlStatus.feature_importance}`}
-            alt="Feature Importance"
-            className="rounded-xl border border-slate-100 dark:border-slate-700 w-full"
-          />
+          {/* Interactive Widget for Feature Importance */}
+          {mlStatus.metrics ? (
+            <InteractiveFeatureImportance data={mlStatus.metrics.feature_importance} />
+          ) : (
+            <div className="h-64 flex items-center justify-center text-slate-400 bg-slate-50 rounded-xl">
+              Loading Metrics...
+            </div>
+          )}
         </div>
         <div>
           <h4 className="text-sm font-semibold text-slate-600 dark:text-slate-400 mb-4 flex items-center gap-2">
             <Sparkles className="w-4 h-4" /> Confusion Matrix (Validation)
           </h4>
-          <img
-            src={`http://127.0.0.1:8000${mlStatus.confusion_matrix}`}
-            alt="Confusion Matrix"
-            className="rounded-xl border border-slate-100 dark:border-slate-700 w-full"
-          />
+          {/* Interactive Widget for Confusion Matrix */}
+          {mlStatus.metrics ? (
+            <div className="h-[300px]">
+              <InteractiveConfusionMatrix data={mlStatus.metrics.confusion_matrix} />
+            </div>
+          ) : (
+            <div className="h-64 flex items-center justify-center text-slate-400 bg-slate-50 rounded-xl">
+              Loading Metrics...
+            </div>
+          )}
         </div>
       </div>
     </div>
   );
-}
-  ;
+};
+;
 
 
 import { useClinicalData } from '../hooks/useClinicalData';
@@ -164,18 +192,21 @@ const Overview = ({ searchQuery }) => {
           title="Total SAEs"
           value={getValue('SAE Records')}
           change="+12%" trend="up"
+          description="Serious Adverse Events reported across all sites. High numbers may indicate safety signals."
           icon={FileWarning} color="text-rose-500 dark:text-rose-400 bg-rose-50 dark:bg-rose-900/20"
         />
         <MetricCard
           title="Missing Pages"
           value={getValue('Missing Pages')}
           change="-5%" trend="down"
+          description="CRF pages not yet entered into the EDC system. Gaps delay data analysis."
           icon={FileText} color="text-amber-500 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20"
         />
         <MetricCard
           title="Subjects Active"
           value={getValue('EDC Metrics')}
           change="+8%" trend="up"
+          description="Total patients currently enrolled and active in the study."
           icon={Users} color="text-blue-500 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20"
         />
       </div>

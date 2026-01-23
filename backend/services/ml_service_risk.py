@@ -42,9 +42,33 @@ class MLRiskService:
     @staticmethod
     def get_ml_status() -> Dict:
         """Returns metadata about the ML model."""
+        import time
+        from datetime import datetime
+        
+        # Get last modified time of the model to use as versioning
+        timestamp = int(time.time())
+        last_trained = "Unknown"
+        
+        if os.path.exists(MODEL_PATH):
+            mtime = os.path.getmtime(MODEL_PATH)
+            timestamp = int(mtime)
+            last_trained = datetime.fromtimestamp(mtime).strftime("%Y-%m-%d %H:%M")
+
+        # Try to load new JSON metrics
+        metrics = {}
+        metrics_path = os.path.join(os.path.dirname(MODEL_PATH), 'model_metrics.json')
+        if os.path.exists(metrics_path):
+            try:
+                import json
+                with open(metrics_path, 'r') as f:
+                    metrics = json.load(f)
+            except Exception as e:
+                print(f"Error loading metrics json: {e}")
+
         return {
-            "confusion_matrix": "/static/ml/confusion_matrix.png",
-            "feature_importance": "/static/ml/feature_importance.png",
+            "confusion_matrix": f"/static/ml/confusion_matrix.png?v={timestamp}",
+            "feature_importance": f"/static/ml/feature_importance.png?v={timestamp}",
+            "metrics": metrics, # Raw data for interactive widgets
             "model_type": "Random Forest Classifier",
-            "last_trained": "2026-01-20" 
+            "last_trained": last_trained 
         }

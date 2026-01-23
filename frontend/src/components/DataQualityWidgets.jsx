@@ -42,7 +42,9 @@ export const MissingVisitsWidget = () => {
                     </div>
                     <div>
                         <h3 className="text-lg font-bold text-slate-800 dark:text-white">Overdue Visits</h3>
-                        <p className="text-xs text-slate-500">Most urgent follow-ups</p>
+                        <p className="text-xs text-slate-500" title="Visits that have exceeded the projected window defined in the protocol.">
+                            Patient visits past projected date
+                        </p>
                     </div>
                 </div>
                 <div className="text-right">
@@ -120,7 +122,9 @@ export const LabQualityWidget = () => {
                     </div>
                     <div>
                         <h3 className="text-lg font-bold text-slate-800 dark:text-white">Lab Quality Gaps</h3>
-                        <p className="text-xs text-slate-500">Missing names/ranges</p>
+                        <p className="text-xs text-slate-500" title="Lab results missing standard units, ranges, or test names required for analysis.">
+                            Incomplete lab data records
+                        </p>
                     </div>
                 </div>
                 <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
@@ -199,7 +203,9 @@ export const SAEReviewWidget = () => {
                     </div>
                     <div>
                         <h3 className="text-lg font-bold text-slate-800 dark:text-white">SAE Reviews</h3>
-                        <p className="text-xs text-slate-500">DM & Safety tracking</p>
+                        <p className="text-xs text-slate-500" title="Serious Adverse Events pending review by Data Management or Safety teams.">
+                            Pending DM & Safety reviews
+                        </p>
                     </div>
                 </div>
                 <div className="text-right">

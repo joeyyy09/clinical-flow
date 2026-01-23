@@ -51,6 +51,24 @@ def get_ml_status():
                 "accuracy": advanced_status.get("accuracy"),
                 "n_features": advanced_status.get("n_features")
             })
+
+    # EMERGENCY PATCH: Directly inject metrics from file to ensure frontend gets them
+    try:
+        import os
+        import json
+        # Go up one level from routers to backend, then to ml/model_metrics.json
+        # backend/routers/risk.py -> backend/routers -> backend
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        metrics_path = os.path.join(base_dir, 'ml', 'model_metrics.json')
+        
+        if os.path.exists(metrics_path):
+            with open(metrics_path, 'r') as f:
+                metrics_data = json.load(f)
+                status['metrics'] = metrics_data
+                # print("Force injected metrics into status")
+    except Exception as e:
+        print(f"Error injecting metrics: {str(e)}")
+        status['_debug_error'] = f"Injection failed: {str(e)} Path: {metrics_path}"
             
     return status
 

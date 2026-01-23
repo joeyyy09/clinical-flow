@@ -22,19 +22,35 @@ def extract_features():
     """
     engine = create_engine(DB_PATH)
     
+    # Helper for cleaning
+    def clean_site_col(df, col_name):
+        initial_count = len(df)
+        # Standardize to string
+        df[col_name] = df[col_name].astype(str).str.strip()
+        # Filter invalid
+        invalid_values = ['', '0', 'nan', 'None', 'Unassigned', 'None']
+        df = df[~df[col_name].isin(invalid_values)]
+        dropped = initial_count - len(df)
+        if dropped > 0:
+            print(f"  ⚠️ Dropped {dropped} rows with invalid site IDs in col '{col_name}'")
+        return df
+
     # 1. Get SAE Counts and Review Rates
     sae_df = pd.read_sql("SELECT site, review_status FROM sae_metrics", engine)
+    sae_df = clean_site_col(sae_df, 'site')
     sae_counts = sae_df.groupby('site').size().reset_index(name='sae_count')
     # Use site number extraction for matching if needed, but for MVP we match directly
     sae_reviewed = sae_df[sae_df['review_status'] == 'Reviewed'].groupby('site').size().reset_index(name='reviewed_count')
     
     # 2. Get Missing Pages
     missing_df = pd.read_sql("SELECT site_number, missing_days FROM missing_pages", engine)
+    missing_df = clean_site_col(missing_df, 'site_number')
     missing_counts = missing_df.groupby('site_number').size().reset_index(name='missing_pages')
     avg_missing_days = missing_df.groupby('site_number')['missing_days'].mean().reset_index(name='avg_missing_days')
     
     # 3. Get Subject Counts (EDC Metrics)
     edc_df = pd.read_sql("SELECT site_id, subject_id FROM edc_metrics", engine)
+    edc_df = clean_site_col(edc_df, 'site_id')
     subject_counts = edc_df.groupby('site_id').size().reset_index(name='subject_count')
     
     # Merge all into a master feature set
@@ -57,10 +73,14 @@ def extract_features():
     # Mocking a target for the hackathon showcase
     # In reality, this would be historical "Audit Failure" or "Delayed Submission" flags.
     # We define High Risk as sites with high missingness OR low review rates.
+    # Updated Thresholds (Dynamic based on data distribution)
+    # High Risk: Extreme missing data (> 30 pages/subject)
+    # Medium Risk: Moderate missing data (> 10 pages/subject)
+    # Low Risk: Everything else
     features['target'] = np.where(
-        (features['missing_per_subject'] > 5) | (features['review_rate'] < 0.3), 
+        features['missing_per_subject'] > 30, 
         2, # High
-        np.where(features['missing_per_subject'] > 2, 1, 0) # Medium, Low
+        np.where(features['missing_per_subject'] > 10, 1, 0) # Medium, Low
     )
     
     return features

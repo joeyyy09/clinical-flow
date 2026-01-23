@@ -12,7 +12,7 @@ export const useClinicalData = () => {
     const [score, setScore] = useState(0);
     const [trends, setTrends] = useState([]);
     const [mlStatus, setMlStatus] = useState(null);
-    const [ readiness, setReadiness ] = useState( null );
+    const [readiness, setReadiness] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
@@ -31,15 +31,15 @@ export const useClinicalData = () => {
 
     const fetchOverviewData = useCallback(async () => {
         try {
-            const [ statsRes, riskRes, scoreRes, trendRes, readinessRes ] = await Promise.all( [
+            const [statsRes, riskRes, scoreRes, trendRes, readinessRes] = await Promise.all([
                 fetch(`${BASE_URL}/chat/stats`),
                 fetch(`${BASE_URL}/analytics/risk`),
                 fetch(`${BASE_URL}/analytics/score`),
-                fetch( `${ BASE_URL }/analytics/trend` ),
-                fetch( `${ BASE_URL }/analytics/readiness` )
+                fetch(`${BASE_URL}/analytics/trend`),
+                fetch(`${BASE_URL}/analytics/readiness`)
             ]);
 
-            const [ statsJson, riskJson, scoreJson, trendJson, readinessJson ] = await Promise.all( [
+            const [statsJson, riskJson, scoreJson, trendJson, readinessJson] = await Promise.all([
                 statsRes.json(),
                 riskRes.json(),
                 scoreRes.json(),
@@ -51,7 +51,7 @@ export const useClinicalData = () => {
             setRiskData(riskJson);
             setScore(scoreJson.score);
             setTrends(trendJson);
-            setReadiness( readinessJson );
+            setReadiness(readinessJson);
         } catch (err) {
             console.error("Overview Fetch Error", err);
             setError(err);
@@ -61,16 +61,16 @@ export const useClinicalData = () => {
     const fetchRiskMonitorData = useCallback(async () => {
         setLoading(true);
         try {
-            const [ riskRes, readinessRes ] = await Promise.all( [
-                fetch( `${ BASE_URL }/analytics/risk-monitor` ),
-                fetch( `${ BASE_URL }/analytics/readiness` )
-            ] );
+            const [riskRes, readinessRes] = await Promise.all([
+                fetch(`${BASE_URL}/analytics/risk-monitor`),
+                fetch(`${BASE_URL}/analytics/readiness`)
+            ]);
 
             const riskData = await riskRes.json();
             const readinessData = await readinessRes.json();
 
-            setRiskData( riskData );
-            setReadiness( readinessData );
+            setRiskData(riskData);
+            setReadiness(readinessData);
         } catch (err) {
             console.error("Risk Monitor Fetch Error", err);
             setError(err);
@@ -81,7 +81,7 @@ export const useClinicalData = () => {
 
     const fetchMLStatus = useCallback(async () => {
         try {
-            const res = await fetch(`${BASE_URL}/analytics/ml-status`);
+            const res = await fetch(`${BASE_URL}/analytics/ml-status?t=${new Date().getTime()}`);
             const data = await res.json();
             setMlStatus(data);
         } catch (err) {

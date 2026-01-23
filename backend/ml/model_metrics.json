@@ -1,0 +1,44 @@
+{
+  "confusion_matrix": [
+    [
+      350,
+      0,
+      0
+    ],
+    [
+      0,
+      5,
+      0
+    ],
+    [
+      0,
+      0,
+      0
+    ]
+  ],
+  "feature_importance": [
+    {
+      "feature": "sae_count",
+      "importance": 0.034209205983944765
+    },
+    {
+      "feature": "missing_pages",
+      "importance": 0.13533324601634175
+    },
+    {
+      "feature": "subject_count",
+      "importance": 0.11683523715191252
+    },
+    {
+      "feature": "review_rate",
+      "importance": 0.0
+    },
+    {
+      "feature": "missing_per_subject",
+      "importance": 0.713622310847801
+    }
+  ],
+  "accuracy": 1.0,
+  "last_trained": "2026-01-23T17:35:57.566415",
+  "n_samples": 1773
+}
