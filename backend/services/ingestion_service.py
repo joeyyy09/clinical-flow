@@ -460,30 +460,40 @@ class IngestionService:
         scan_dirs = [IngestionService.DATA_DIR, IngestionService.RULES_DATA_DIR, os.path.join(os.getcwd(), "uploads")]
         
         for directory in scan_dirs:
-            if not os.path.exists(directory): continue
+            if not os.path.exists(directory): 
+                print(f"Directory not found: {directory}")
+                continue
+                
+            print(f"📂 Scanning {directory}...")
             for root, dirs, files in os.walk(directory):
                 for file in files:
                     full_path = os.path.join(root, file)
                     if file.startswith("~$") or file.startswith(".") or not file.endswith(('.xlsx', '.xls')): continue
                     
-                    if "SAE Dashboard" in file or "eSAE" in file:
-                        IngestionService.ingest_sae_metrics(db, full_path)
-                    elif "Missing_Pages" in file:
-                        IngestionService.ingest_missing_pages(db, full_path)
-                    elif "EDC_Metrics" in file:
-                        IngestionService.ingest_edc_metrics(db, full_path)
-                    elif "Visit Projection" in file or "Visit_Projection" in file:
-                        IngestionService.ingest_visit_projections(db, full_path)
-                    elif "Missing_Lab" in file:
-                        IngestionService.ingest_missing_lab_data(db, full_path)
-                    elif "Inactivated" in file:
-                        IngestionService.ingest_inactivated_forms(db, full_path)
-                    elif "Compiled_EDRR" in file or "EDRR" in file:
-                        IngestionService.ingest_edrr_issues(db, full_path)
-                    elif "GlobalCoding" in file:
-                        IngestionService.ingest_coding_reports(db, full_path)
-                    elif "CRA_Activity" in file or "CRA Logs" in file:
-                        IngestionService.ingest_cra_activity_logs(db, full_path)
+                    # Fuzzy matching for various file naming conventions
+                    filename_lower = file.lower()
+                    
+                    try:
+                        if "esae" in filename_lower or ("sae" in filename_lower and "dashboard" in filename_lower):
+                            IngestionService.ingest_sae_metrics(db, full_path)
+                        elif "missing" in filename_lower and "page" in filename_lower:
+                            IngestionService.ingest_missing_pages(db, full_path)
+                        elif "edc_metrics" in filename_lower or "edc metrics" in filename_lower:
+                            IngestionService.ingest_edc_metrics(db, full_path)
+                        elif "visit projection" in filename_lower or "visit_projection" in filename_lower:
+                            IngestionService.ingest_visit_projections(db, full_path)
+                        elif "missing" in filename_lower and "lab" in filename_lower:
+                            IngestionService.ingest_missing_lab_data(db, full_path)
+                        elif "inactivated" in filename_lower:
+                            IngestionService.ingest_inactivated_forms(db, full_path)
+                        elif "edrr" in filename_lower:
+                            IngestionService.ingest_edrr_issues(db, full_path)
+                        elif "coding" in filename_lower and ("meddra" in filename_lower or "whod" in filename_lower or "global" in filename_lower):
+                            IngestionService.ingest_coding_reports(db, full_path)
+                        elif "cra" in filename_lower and ("activity" in filename_lower or "log" in filename_lower):
+                            IngestionService.ingest_cra_activity_logs(db, full_path)
+                    except Exception as e:
+                        print(f"⚠️ Failed to ingest {file}: {e}")
         
         IngestionService.calculate_derived_latencies(db)
         

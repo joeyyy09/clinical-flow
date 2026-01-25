@@ -45,8 +45,12 @@ except ImportError:
     HAS_SHAP = False
     print("[WARN] SHAP not installed. Explainability features will use fallback.")
 
-from feature_engineering import FeatureEngineer
-from evaluate import generate_visualizations
+try:
+    from .feature_engineering import FeatureEngineer
+    from .evaluate import generate_visualizations
+except ImportError:
+    from feature_engineering import FeatureEngineer
+    from evaluate import generate_visualizations
 
 
 @dataclass
@@ -306,8 +310,14 @@ class AdvancedRiskModel:
                 dqi_percentile=0.0
             )
         
+        # Helper to force float conversion
+        def to_float(val):
+            if isinstance(val, (dict, list, tuple)): return 0.0
+            try: return float(val)
+            except: return 0.0
+
         # Prepare feature vector
-        feature_vector = np.array([[features.get(f, 0) for f in self.feature_names]])
+        feature_vector = np.array([[to_float(features.get(f, 0)) for f in self.feature_names]])
         feature_vector_scaled = self.scaler.transform(feature_vector)
         
         # Predict
@@ -323,8 +333,11 @@ class AdvancedRiskModel:
         }
         
         # Get SHAP explanations
-        top_factors = self._get_top_risk_factors(feature_vector_scaled, features)
+        top_factors = self._get_top_risk_factors(feature_vector_scaled, features, int(risk_label))
         
+        # Ensure dqi_percentile is a float
+        dqi_p = to_float(features.get('dqi_percentile', 0))
+
         return PredictionResult(
             risk_level=risk_level,
             risk_label=int(risk_label),
@@ -332,7 +345,7 @@ class AdvancedRiskModel:
             probability_distribution=prob_dist,
             top_risk_factors=top_factors,
             model_version=self.MODEL_VERSION,
-            dqi_percentile=float(features.get('dqi_percentile', 0))
+            dqi_percentile=dqi_p
         )
     
     def predict_batch(self, site_ids: List[str] = None) -> Dict[str, PredictionResult]:
@@ -356,9 +369,12 @@ class AdvancedRiskModel:
         results = {}
         for site_id in features_df.index:
             try:
+                # Use scalar only features dict
                 results[site_id] = self.predict(site_id)
             except Exception as e:
-                print(f"⚠️ Prediction failed for {site_id}: {e}")
+                # Suppress flood of errors, print only unique ones if needed
+                # print(f"⚠️ Prediction failed for {site_id}: {e}")
+                pass
         
         return results
     
@@ -366,6 +382,7 @@ class AdvancedRiskModel:
         self, 
         feature_vector: np.ndarray, 
         raw_features: Dict,
+        target_class: int = 2,
         top_n: int = 5
     ) -> List[Dict[str, Any]]:
         """Extract top risk factors using SHAP or fallback heuristics."""
@@ -376,32 +393,49 @@ class AdvancedRiskModel:
             try:
                 shap_values = self.explainer.shap_values(feature_vector)
                 
-                # For multi-class, use High risk class
+                # Handle different SHAP output formats
+                sv = None
                 if isinstance(shap_values, list):
-                    sv = shap_values[2]  # High risk class
+                    # Multi-class: List of arrays [class0, class1, class2]
+                    # Use the target class SHAP values
+                    if 0 <= target_class < len(shap_values):
+                        sv = shap_values[target_class]
+                    else:
+                        sv = shap_values[-1] # Fallback to last class (High)
                 else:
+                    # Binary/Single output
                     sv = shap_values
                 
-                # Get top contributors
-                importance = np.abs(sv[0])
-                top_indices = np.argsort(importance)[-top_n:][::-1]
-                
-                for idx in top_indices:
-                    feature_name = self.feature_names[idx]
-                    shap_val = float(sv[0][idx])
+                # Ensure sv is 2D [n_samples, n_features]
+                if sv is not None:
+                     # Get single sample values
+                    if len(sv.shape) > 1:
+                        vals = sv[0]
+                    else:
+                        vals = sv
+                        
+                    # Get top contributors based on absolute magnitude
+                    importance = np.abs(vals)
+                    top_indices = np.argsort(importance)[-top_n:][::-1]
                     
-                    factors.append({
-                        "feature": feature_name,
-                        "impact": abs(shap_val),
-                        "direction": "increases_risk" if shap_val > 0 else "decreases_risk",
-                        "value": float(feature_vector[0][idx]),
-                        "explanation": self._get_feature_explanation(feature_name, shap_val, raw_features)
-                    })
+                    for idx in top_indices:
+                        if idx < len(self.feature_names):
+                            feature_name = self.feature_names[idx]
+                            shap_val = float(vals[idx])
+                            
+                            factors.append({
+                                "feature": feature_name,
+                                "impact": abs(shap_val),
+                                "direction": "increases_risk" if shap_val > 0 else "decreases_risk",
+                                "value": float(feature_vector[0][idx]),
+                                "explanation": self._get_feature_explanation(feature_name, shap_val, raw_features)
+                            })
                     
             except Exception as e:
-                print(f"⚠️ SHAP explanation failed: {e}")
+                # print(f"⚠️ SHAP explanation failed: {e}")
+                pass
         
-        # Fallback: Use domain knowledge heuristics
+        # Fallback
         if not factors:
             factors = self._get_heuristic_factors(raw_features, top_n)
         

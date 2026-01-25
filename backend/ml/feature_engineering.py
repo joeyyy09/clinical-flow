@@ -233,6 +233,16 @@ class FeatureEngineer:
             meddra_data = meddra_map.get(site_id, {'meddra_uncoded': 0, 'meddra_total': 0})
             who_data = who_map.get(site_id, {'who_uncoded': 0, 'who_total': 0})
             
+            # Helper to safely extract scalar
+            def get_val(source, key):
+                val = source.get(key, 0)
+                if isinstance(val, (dict, list, tuple)):
+                    return 0
+                try:
+                    return float(val)
+                except:
+                    return 0
+
             feature_row = {
                 'site_id': site_id,
                 'study_id': row['study_id'],
@@ -240,46 +250,46 @@ class FeatureEngineer:
                 
                 # Base counts
                 'subject_count': subject_count,
-                'total_missing_pages': row['total_missing_pages'] or 0,
-                'total_missing_visits': row['total_missing_visits'] or 0,
-                'total_queries': row['total_queries'] or 0,
-                'total_deviations': row['total_deviations'] or 0,
-                'total_sae_reviews': row['total_sae_reviews'] or 0,
-                'total_edrr_issues': row['total_edrr_issues'] or 0,
-                'total_inactivated': row['total_inactivated'] or 0,
+                'total_missing_pages': get_val(row, 'total_missing_pages'),
+                'total_missing_visits': get_val(row, 'total_missing_visits'),
+                'total_queries': get_val(row, 'total_queries'),
+                'total_deviations': get_val(row, 'total_deviations'),
+                'total_sae_reviews': get_val(row, 'total_sae_reviews'),
+                'total_edrr_issues': get_val(row, 'total_edrr_issues'),
+                'total_inactivated': get_val(row, 'total_inactivated'),
                 
                 # Query breakdown
-                'dm_queries': row['dm_queries'] or 0,
-                'clinical_queries': row['clinical_queries'] or 0,
-                'medical_queries': row['medical_queries'] or 0,
-                'safety_queries': row['safety_queries'] or 0,
-                'coding_queries': row['coding_queries'] or 0,
+                'dm_queries': get_val(row, 'dm_queries'),
+                'clinical_queries': get_val(row, 'clinical_queries'),
+                'medical_queries': get_val(row, 'medical_queries'),
+                'safety_queries': get_val(row, 'safety_queries'),
+                'coding_queries': get_val(row, 'coding_queries'),
                 
                 # Verification metrics
-                'total_verified': row['total_verified'] or 0,
-                'total_locked': row['total_locked'] or 0,
-                'total_signed': row['total_signed'] or 0,
-                'total_broken_sigs': row['total_broken_sigs'] or 0,
-                'avg_clean_crf_pct': row['avg_clean_crf_pct'] or 0,
+                'total_verified': get_val(row, 'total_verified'),
+                'total_locked': get_val(row, 'total_locked'),
+                'total_signed': get_val(row, 'total_signed'),
+                'total_broken_sigs': get_val(row, 'total_broken_sigs'),
+                'avg_clean_crf_pct': get_val(row, 'avg_clean_crf_pct'),
                 
                 # Coding metrics
-                'total_coded': row['total_coded'] or 0,
-                'total_uncoded': row['total_uncoded'] or 0,
-                'meddra_uncoded': meddra_data.get('meddra_uncoded', 0) or 0,
-                'who_uncoded': who_data.get('who_uncoded', 0) or 0,
+                'total_coded': get_val(row, 'total_coded'),
+                'total_uncoded': get_val(row, 'total_uncoded'),
+                'meddra_uncoded': get_val(meddra_data, 'meddra_uncoded'),
+                'who_uncoded': get_val(who_data, 'who_uncoded'),
                 
                 # SAE metrics
-                'sae_count': sae_data.get('sae_count', 0) or 0,
-                'pending_sae': sae_data.get('pending_sae', 0) or 0,
-                'reviewed_sae': sae_data.get('reviewed_sae', 0) or 0,
+                'sae_count': get_val(sae_data, 'sae_count'),
+                'pending_sae': get_val(sae_data, 'pending_sae'),
+                'reviewed_sae': get_val(sae_data, 'reviewed_sae'),
                 
                 # Global missing pages
-                'global_missing_pages': missing_data.get('global_missing_pages', 0) or 0,
-                'avg_missing_days': missing_data.get('avg_missing_days', 0) or 0,
-                'max_missing_days': missing_data.get('max_missing_days', 0) or 0,
+                'global_missing_pages': get_val(missing_data, 'global_missing_pages'),
+                'avg_missing_days': get_val(missing_data, 'avg_missing_days'),
+                'max_missing_days': get_val(missing_data, 'max_missing_days'),
                 
                 # Query latency
-                'sum_query_latency': row['sum_query_latency'] or 0,
+                'sum_query_latency': get_val(row, 'sum_query_latency'),
             }
             
             results.append(feature_row)

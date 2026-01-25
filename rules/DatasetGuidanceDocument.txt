@@ -1,0 +1,361 @@
+Guidance document
+
+
+
+
+
+Table of Contents
+	•	CPID_EDC_Metrics
+	•	Visit Projection Tracker
+	•	Missing_Lab_Name_and_Missing_Ranges
+	•	SAE Dashboard
+	•	Inactivated forms and loglines
+	•	Global_Missing_Pages_Report
+	•	Compiled_EDRR
+	•	GlobalCodingReport_Medra
+	•	GlobalCodingReport_WHOdra
+
+
+1. CPID_EDC_Metrics
+Purpose: This file provides a comprehensive overview of Electronic Data Capture (EDC) metrics for clinical data management. It helps study teams, data managers, and stakeholders monitor data quality, site performance, and operational bottlenecks across clinical trial sites and subjects.
+Tab: Subject Level Metrics
+Column Name
+Description & Explanation
+Project Name
+Name of the clinical project or study.
+Region
+Geographical region (e.g., ASIA, EU, US) where the site is located.
+Country
+Country of the clinical site.
+Site ID
+Unique identifier for the clinical trial site.
+Subject ID
+Unique identifier for each subject enrolled in the study.
+Latest Visit (SV) (Source: Rave EDC: BO4)
+The most recent visit completed by the subject, as recorded in the EDC system.
+Subject Status (Source: PRIMARY Form)
+Current status of the subject (e.g., Ongoing, Discontinued, Screen Failure).
+Input files
+Number of input files or forms entered for the subject.
+CPMD
+Clinical Project Management Dashboard metric (custom metric, may refer to project-specific data points).
+SSM
+Site Status Metric (custom metric, may refer to site-specific status or performance).
+Missing Visits
+Number of scheduled visits that have not yet occurred or been entered.
+Missing Page
+Number of missing pages in the subject's case report forms (CRFs).
+# Coded terms
+Number of terms (e.g., adverse events, medications) that have been coded (e.g., MedDRA, WHO Drug).
+# Uncoded Terms
+Number of terms that remain uncoded and require coding for regulatory compliance.
+# Open issues in LNR
+Number of unresolved issues in the Lab Normal Range (LNR) module.
+# Open Issues reported for 3rd party reconciliation in EDRR
+Number of open issues flagged for reconciliation with third-party data sources in the EDRR system.
+Inactivated forms and folders
+Count of forms or folders that have been inactivated (e.g., due to protocol deviations or subject withdrawal).
+# eSAE dashboard review for DM
+Number of Serious Adverse Event (SAE) dashboard reviews completed by Data Management.
+# eSAE dashboard review for safety
+Number of SAE dashboard reviews completed by the Safety team.
+Visit status
+Status of subject visits (e.g., Completed, Pending, Missed).
+Page status (Source: (Rave EDC : BO4))
+Status of data entry pages (e.g., Entered, Verified, Missing) in the EDC system.
+Queries status (Source:(Rave EDC : BO4))
+Status of data queries (e.g., Open, Answered, Closed) in the EDC system.
+Page Action Status (Source: (Rave EDC : BO4))
+Status of actions taken on data entry pages (e.g., Locked, Unlocked, Frozen).
+Protocol Deviations (Source:(Rave EDC : BO4))
+Number of protocol deviations recorded for the subject.
+PI Signatures (Source: (Rave EDC : BO4))
+Status of Principal Investigator (PI) signatures on required forms/pages.
+# Expected Visits (Rave EDC : BO4)
+Total number of visits expected for the subject as per protocol.
+# Pages Entered
+Total number of data entry pages completed for the subject.
+# Pages with Non-Conformant data
+Number of pages containing data that does not conform to protocol or data standards.
+# Total CRFs with queries & Non-Conformant data
+Number of case report forms (CRFs) that have either open queries or non-conformant data.
+# Total CRFs without queries & Non-Conformant data
+Number of CRFs that are clean (no queries, no non-conformant data).
+% Clean Entered CRF
+Percentage of CRFs that are clean (entered and verified without issues).
+# DM Queries
+Number of queries raised by Data Management.
+# Clinical Queries
+Number of queries raised by Clinical team.
+# Medical Queries
+Number of queries raised by Medical team.
+# Site Queries
+Number of queries raised by the site.
+# Field Monitor Queries
+Number of queries raised by field monitors.
+# Coding Queries
+Number of queries related to coding (e.g., MedDRA, WHO Drug).
+# Safety Queries
+Number of queries related to safety data.
+#Total Queries
+Total number of queries (all types) for the subject.
+# CRFs Require Verification (SDV)
+Number of CRFs that require Source Data Verification (SDV).
+# Forms Verified
+Number of forms that have been verified.
+# CRFs Frozen
+Number of CRFs that are frozen (locked for further editing).
+# CRFs Not Frozen
+Number of CRFs that are not frozen (still open for editing).
+# CRFs Locked
+Number of CRFs that are locked (finalized and cannot be edited).
+# CRFs Unlocked
+Number of CRFs that are unlocked (editable).
+# PDs Confirmed
+Number of protocol deviations that have been confirmed.
+# PDs Proposed
+Number of protocol deviations that have been proposed but not yet confirmed.
+# CRFs Signed
+Number of CRFs that have been signed by the PI or authorized personnel.
+CRFs overdue for signs within 45 days of Data entry
+Number of CRFs overdue for signature within 45 days of data entry.
+CRFs overdue for signs between 45 to 90 days of Data entry
+Number of CRFs overdue for signature between 45 and 90 days.
+CRFs overdue for signs beyond 90 days of Data entry
+Number of CRFs overdue for signature beyond 90 days.
+Broken Signatures
+Number of CRFs with broken or invalid signatures.
+CRFs Never Signed
+Number of CRFs that have never been signed.
+Responsible LF for action
+Responsible Lead Function (LF) for taking action on outstanding items.
+Site/CRA, DM, CSE/CDD, CDMD/Medical Lead, Coder, Safety Team, Investigator
+Various roles responsible for data entry, review, coding, and safety oversight.
+
+
+2. Visit Projection Tracker
+
+Purpose: 
+Lists all projected subject visits that have not yet occurred or been entered, including the number of days each visit is overdue. Used to track visit compliance and support proactive site and subject follow-up.
+Tab: Missing Visits
+Column Name
+Description & Explanation
+Country
+Country where the clinical trial site is located.
+Site
+Unique identifier for the clinical trial site.
+Subject
+Unique identifier for each subject enrolled at the site.
+Visit
+Name of the scheduled visit (e.g., Cycle12Week1).
+Projected Date
+The planned date for the visit as per protocol schedule.
+# Days Outstanding
+Number of days since the projected visit date. Highlights overdue visits and supports timely follow-up.
+
+3. Missing_Lab_Name_and_Missing_Ranges
+Purpose:
+Enumerates all instances where laboratory names or reference ranges/units are missing for local lab results. Used by data managers and CRAs to identify and resolve data gaps that could impact data quality and regulatory compliance.
+Column Name
+Description & Explanation
+Country
+Country where the clinical trial site is located.
+Site number
+Unique identifier for the clinical trial site.
+Subject
+Unique identifier for each subject enrolled at the site.
+Visit
+Name of the scheduled visit (e.g., 30 day Safety, Cycle 5 Week 5).
+Form Name
+Name of the data entry form in the EDC system (e.g., Chemistry - Local Lab Results).
+Lab category
+Category of the laboratory test (e.g., CHEMISTRY, HEMATOLOGY, COAGULATION).
+Lab Name
+Name of the laboratory performing the test. If missing, flagged for follow-up.
+Lab Date
+Date when the laboratory test was performed.
+Test Name
+Short name or code for the laboratory test (e.g., ALT, CK, HGB).
+Test description
+Full description of the laboratory test (e.g., Alanine aminotransferase, Hemoglobin).
+Issue
+Type of issue identified (e.g., “Ranges/ Units not entered”, “Missing Lab name”).
+Comments
+Recommended action or additional notes (e.g., “Action for CRA”, “Action for Site”).
+
+
+4. SAE Dashboard
+Purpose:
+Tracks the status of Serious Adverse Event (SAE) discrepancies and reviews from a data management and safety team’s perspective
+Tab: SAE Dashboard_DM
+Column Name
+Description & Explanation
+Discrepancy ID
+Unique identifier for each discrepancy or issue tracked in the dashboard.
+Study ID
+Identifier for the clinical study.
+Country
+Country where the site is located.
+Site
+Unique identifier for the clinical trial site.
+Patient ID
+Unique identifier for the patient/subject.
+Form Name
+Name of the data entry form where the discrepancy was found.
+Discrepancy Created Timestamp in Dashboard
+Date and time when the discrepancy was created in the dashboard.
+Review Status
+Current review status (e.g., Review Completed, Pending for Review).
+Action Status
+Status of actions taken or required (e.g., No action required, Pending).
+
+Tab: SAE Dashboard_Safety
+Column Name
+Description & Explanation
+Discrepancy ID
+Unique identifier for each discrepancy or issue tracked in the dashboard.
+Study ID
+Identifier for the clinical study.
+Site
+Unique identifier for the clinical trial site.
+Patient ID
+Unique identifier for the patient/subject.
+Case Status
+Status of the clinical case (e.g., Closed, Locked).
+Discrepancy Created Timestamp in Dashboard
+Date and time when the discrepancy was created in the dashboard.
+Review Status
+Current review status (e.g., Review Completed, Pending for Review).
+Action Status
+Status of actions taken or required (e.g., No action required, Pending).
+
+
+5. Inactivated Forms and Loglines
+Purpose:
+Logs all inactivated data pages and records in the clinical trial database, including the reason and context for inactivation. 
+Column Name
+Description & Explanation
+Country
+Country where the site is located.
+Site
+Name or identifier of the clinical site.
+Study Site Number
+Numeric identifier for the site.
+Subject
+Unique identifier for the subject/patient.
+Folder
+Folder or module in the EDC system (e.g., Adverse Events, Disposition).
+Form
+Name of the data entry form (e.g., Adverse Events, Disposition).
+Data on Form/Record
+Indicates if data is present (Y/N).
+RecordPosition
+Position or sequence number of the record within the form/folder.
+Audit Action
+Description of the inactivation action (e.g., DataPage inactivated with code reason, Record Inactivated).
+
+
+6. Global_Missing_Pages_Report
+Purpose:
+Details missing CRF pages at the individual visit level for each subject, enabling targeted follow-up and resolution of specific data gaps.
+Column Name
+Description & Explanation
+Study Name
+Name of the clinical study.
+SiteGroupName(CountryName)
+Country or region where the site is located.
+SiteNumber
+Unique identifier for the clinical trial site.
+SubjectName
+Unique identifier for the subject/patient.
+Overall Subject Status
+Status of the subject in the study (e.g., Survival, Discontinued, Follow-Up).
+Visit Level Subject Status
+Status of the subject at the visit level.
+FolderName
+Name of the folder/module in the EDC system.
+Visit date
+Date of the scheduled or actual visit.
+Form Type (Summary or Visit)
+Indicates if the missing page is from a summary or a specific visit.
+FormName
+Name of the form with missing pages.
+No. #Days Page Missing
+Number of days the page has been missing.
+
+
+7. Compiled_EDRR
+Purpose:
+Summarizes the total number of unresolved data issues for each subject in the study for third party data, supporting prioritization of data cleaning and issue resolution.
+Column Name
+Description & Explanation
+Study
+Name of the clinical study.
+Subject
+Unique identifier for the subject/patient.
+Total Open issue Count per subject
+Number of unresolved issues for each subject.
+
+
+8. GlobalCodingReport_MedDRA
+Purpose:
+Provides a detailed record of all medical terms (e.g., adverse events, medical history) that require or have undergone MedDRA coding
+
+Column Name
+Description & Explanation
+MedDRA Coding Report
+Indicates the type of coding report (MedDRA).
+Study
+Name or ID of the clinical study.
+Dictionary
+Name of the coding dictionary used (e.g., MedDRA).
+Dictionary Version number
+Version of the MedDRA dictionary used for coding.
+Subject
+Unique identifier for the subject/patient.
+Form
+Name of the data entry form (e.g., Adverse Events, Medical History).
+Form OID
+Object Identifier for the form in the EDC system.
+Logline
+Line number or sequence for the coded entry.
+Field OID
+Object Identifier for the specific field being coded.
+Supplement Term Value1
+Additional term or value supplementing the main coded term (if applicable).
+Coding Status
+Status of the coding (e.g., Coded Term, UnCoded Term).
+Require Coding
+Indicates if the term requires coding (Yes/No).
+
+
+9. GlobalCodingReport_WHODRA
+Purpose:
+Provides a detailed record of all medications and therapies that require or have undergone WHO Drug dictionary coding
+Column Name
+Description & Explanation
+WHODrug Coding Report
+Indicates the type of coding report (WHO Drug).
+Study
+Name or ID of the clinical study.
+Dictionary
+Name of the coding dictionary used (e.g., WHODrug-Global-B3).
+Dictionary Version number
+Version of the WHO Drug dictionary used for coding.
+Subject
+Unique identifier for the subject/patient.
+Form
+Name of the data entry form (e.g., Antineoplastic Medications, Prior or Concomitant Medications).
+Form OID
+Object Identifier for the form in the EDC system.
+Logline
+Line number or sequence for the coded entry.
+Field OID
+Object Identifier for the specific field being coded.
+Trade Name
+Trade name of the medication (if available).
+Coding Status
+Status of the coding (e.g., Coded Term, UnCoded Term).
+Require Coding
+Indicates if the term requires coding (Yes/No).
+

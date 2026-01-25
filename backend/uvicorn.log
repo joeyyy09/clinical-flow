@@ -4659,3 +4659,8 @@ INFO:     127.0.0.1:52488 - "GET /analytics/risk-monitor HTTP/1.1" 200 OK
 INFO:     127.0.0.1:52487 - "GET /analytics/risk-monitor HTTP/1.1" 200 OK
 INFO:     127.0.0.1:52487 - "GET /reports/saved HTTP/1.1" 200 OK
 INFO:     127.0.0.1:52487 - "GET /reports/saved HTTP/1.1" 200 OK
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [33395]
+INFO:     Stopping reloader process [27954]
