@@ -1,44 +1,64 @@
 {
   "confusion_matrix": [
     [
-      350,
-      0,
-      0
+      185,
+      14,
+      115
     ],
     [
+      32,
       0,
-      5,
-      0
+      26
     ],
     [
-      0,
-      0,
-      0
+      167,
+      10,
+      136
     ]
   ],
   "feature_importance": [
     {
-      "feature": "sae_count",
-      "importance": 0.034209205983944765
-    },
-    {
-      "feature": "missing_pages",
-      "importance": 0.13533324601634175
+      "feature": "total_missing_pages",
+      "importance": 0.0
     },
     {
       "feature": "subject_count",
-      "importance": 0.11683523715191252
+      "importance": 0.26326152814113396
     },
     {
-      "feature": "review_rate",
+      "feature": "sae_review_rate",
       "importance": 0.0
     },
     {
       "feature": "missing_per_subject",
-      "importance": 0.713622310847801
+      "importance": 0.0
+    },
+    {
+      "feature": "deviations_per_subject",
+      "importance": 0.0
+    },
+    {
+      "feature": "queries_per_subject",
+      "importance": 0.2931032162308659
+    },
+    {
+      "feature": "avg_query_latency",
+      "importance": 0.0838800108959394
+    },
+    {
+      "feature": "signature_integrity",
+      "importance": 0.3597552447320608
+    },
+    {
+      "feature": "coding_completion_rate",
+      "importance": 0.0
+    },
+    {
+      "feature": "missing_burden_per_subject",
+      "importance": 0.0
     }
   ],
-  "accuracy": 1.0,
-  "last_trained": "2026-01-23T17:35:57.566415",
-  "n_samples": 1773
+  "accuracy": 0.4686131386861314,
+  "last_trained": "2026-01-30T15:34:52.816824",
+  "n_samples": 3424
 }

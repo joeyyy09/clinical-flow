@@ -188,7 +188,21 @@ class AdvancedRiskModel:
         
         # 2. Prepare training data
         self.feature_names = self.feature_engineer.get_feature_names()
-        available_features = [f for f in self.feature_names if f in features_df.columns]
+        
+        # KEY CHANGE: Filter out "Leaky" features that directly define the target
+        # This ensures the model learns predictive patterns, not just the rules
+        leaky_features = [
+            'calculated_dqi', 'risk_velocity', 'sae_per_subject', 
+            'has_pending_sae', 'critical_flag_count', 'safety_score',
+            'dqi_percentile', 'data_quality_score', 'compliance_index',
+            'safety_percentile', 'coding_score', 'query_score',
+            'sae_count', 'pending_sae', 'reviewed_sae'
+        ]
+        
+        available_features = [
+            f for f in self.feature_names 
+            if f in features_df.columns and f not in leaky_features
+        ]
         
         if len(available_features) < 10:
             print(f"⚠️ Only {len(available_features)} features available. Using all available.")
@@ -196,7 +210,7 @@ class AdvancedRiskModel:
         X = features_df[available_features].values
         y = features_df['risk_label'].values
         
-        print(f"📈 Dataset: {X.shape[0]} sites, {X.shape[1]} features")
+        print(f"📈 Dataset: {X.shape[0]} sites, {X.shape[1]} features (Cleaned of Leakage)")
         print(f"📊 Label distribution: {dict(zip(*np.unique(y, return_counts=True)))}")
         
         # Handle small datasets
@@ -242,6 +256,9 @@ class AdvancedRiskModel:
                 print(f"⚠️ SHAP explainer creation failed: {e}")
                 self.explainer = None
         
+        self.is_trained = True
+        self.feature_names = available_features
+
         # 8. Save model
         if save_model:
             self._save_model()
