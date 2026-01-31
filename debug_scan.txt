@@ -1,0 +1,39 @@
+File: Study 1_CPID_EDC_Metrics_URSV2.0_14 NOV 2025_updated.xlsx
+Scanning first 5 rows for ALL matches...
+
+Match 'Missing' at (1,7): 'Missing Visits'
+    Max Data: 0.0, Non-Zero: 0/98
+--------------------
+Match 'Missing' at (1,8): 'Missing Page'
+    Max Data: 0.0, Non-Zero: 0/98
+--------------------
+Match 'Page' at (1,8): 'Missing Page'
+    Max Data: 0.0, Non-Zero: 0/98
+--------------------
+Match 'Coded' at (1,9): '# Coded terms'
+    Max Data: 0.0, Non-Zero: 0/98
+--------------------
+Match 'Coded' at (1,10): '# Uncoded Terms'
+    Max Data: 0.0, Non-Zero: 0/98
+--------------------
+Match 'Issue' at (1,11): '# Open issues in LNR'
+    Max Data: 0.0, Non-Zero: 0/98
+--------------------
+Match 'Issue' at (1,12): '# Open Issues reported for 3rd party reconciliation in EDRR'
+    Max Data: 0.0, Non-Zero: 0/98
+--------------------
+Match 'Page' at (1,17): 'Page status (Source: (Rave EDC : BO4))'
+    Max Data: 10715, Non-Zero: 98/98
+--------------------
+Match 'Page' at (1,30): 'Page Action Status (Source: (Rave EDC : BO4))'
+    Max Data: 190.0, Non-Zero: 65/98
+--------------------
+Match 'Deviations' at (1,36): 'Protocol Deviations (Source:(Rave EDC : BO4))'
+    Max Data: 3.0, Non-Zero: 8/98
+--------------------
+Match 'Page' at (2,17): '# Pages Entered'
+    Max Data: 10715, Non-Zero: 98/98
+--------------------
+Match 'Page' at (2,18): '# Pages with Non-Conformant data'
+    Max Data: 9, Non-Zero: 9/98
+--------------------
