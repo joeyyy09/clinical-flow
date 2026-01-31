@@ -1,6 +1,8 @@
 # Clinical Flow: Intelligent Clinical Trial Operational Dataflow
 
-![ClinicalFlow Banner](docs/screenshots/overview_dark.png)
+
+<img width="1917" height="924" alt="Screenshot 2026-01-31 133404" src="https://github.com/user-attachments/assets/ce0ef97c-eaed-49df-80af-671e38ce3f9b" />
+
 
 ## Executive Summary
 **Clinical Flow** is an advanced **AI-powered Risk Surveillance Platform** engineered to solve the "Data Fragmentation" crisis in clinical trials. By unifying disparate operational logs (EDC, Safety, Lab) into a single **Knowledge Graph**, it enables real-time risk detection, predictive analytics, and autonomous problem-solving.
@@ -18,33 +20,7 @@ This platform explicitly addresses the **Problem Statements**:
 
 The system uses a **Service-Repository** pattern to ensure separation of concerns and scalability.
 
-```text
-[ Raw Data Sources ]
-        |
-    ( Upload )
-        v
- [ Ingestion Service ] --> ( Fuzzy Matching ) --> < Schema Validator >
-                                                          |
-                      +------------------+----------------+
-                      |                  |
-                   [Valid]           [Invalid]
-                      |                  |
-         [( SQLite Golden Record )]  [ Error Log ]
-              /           \
-             /             \
- [ ML Prediction Svc ]  [ Analytics Svc ]
-            |                  |
-   ( Ensemble Inference )      |
-            |                  |
-      [ Risk Scores ]          |
-             \                /
-              \              /
-             [ API  Gateway ]
-                    |
-            [ React Frontend ]
-                    |
-             UseClinicalData()
-```
+<img width="791" height="528" alt="image" src="https://github.com/user-attachments/assets/e5901f8b-e17f-4af7-b2f4-d1e9803d611d" />
 
 ### 1. The Intelligence Layer (Backend)
 *   **Framework**: FastAPI (Python 3.11) with Uvicorn.
@@ -117,29 +93,40 @@ clinical-flow/
 *   **Patient Status**: Total Enrolled vs. Screen Failures vs. Completed.
 *   **Safety Signals**: Pending SAEs requiring Medical Monitor review.
 *   **Query Operations**: Open vs. Answered queries with "Average Resolution Time".
+  <img width="1919" height="921" alt="Screenshot 2026-01-31 041920" src="https://github.com/user-attachments/assets/46023a15-3a6c-4d5f-91df-d8bbc32bccb5" />
+
 
 **B. Advanced Visualizations**
 *   **Site Risk Heatmap**: Geographic distribution of "High Risk" sites using color-coded intensity.
 *   **SAE Velocity Trends**: 6-month time-series forecasting safety spikes.
 *   **ML Explainability**: Feature Importance selection (e.g., "Why is Site 101 risky? -> High Protocol Deviations").
+*   <img width="1917" height="990" alt="Screenshot 2026-01-31 042410" src="https://github.com/user-attachments/assets/d582183b-7b56-4b13-9ffc-e5332b7c7254" />
+
 
 **C. Operational Widgets**
 *   **CRA Performance**: Bar charts comparing query resolution rates per Clinical Research Associate.
 *   **Lab Data Gaps**: Live list of missing Units/Ranges preventing analysis.
 *   **Medical Coding**: MedDRA/WHODrug coding completion rates.
 *   **Audit Trail**: "Inactivated Forms Log" tracking data deletions.
+  <img width="1751" height="881" alt="Screenshot 2026-01-31 043029" src="https://github.com/user-attachments/assets/94e1e343-0349-4f1f-be92-20280dbe6f48" />
+
 
 ### 2. Risk Monitor
 *A comprehensive surveillance grid for detailed site data.*
 *   **Dual-Risk Scoring**: Displays both **Heuristic Risk** (Rule-based) and **AI Prediction** (Ensemble ML) side-by-side.
 *   **Clean Patient Rate**: A visual progress bar showing the percentage of subjects at a site with **ZERO** open issues.
 *   **Agentic Recommendations**: AI-suggested next actions (e.g., "Targeted SDV recommended due to high deviation count") to guide CRA workflow.
+  <img width="1913" height="934" alt="Screenshot 2026-01-31 105255" src="https://github.com/user-attachments/assets/456e1bdc-8a70-444f-b97a-e17ee2fae7d5" />
+
+
 
 ### 3. Data Ingestion Pipeline
 *An intelligent, drag-and-drop interface for raw operational data.*
 *   **Fuzzy Logic Engine**: Automatically maps inconsistent Excel headers (e.g., "Pt_ID", "Subj#") to the canonical "Golden Record" schema using Levenshtein distance.
 *   **Real-time ML Training**: Uploading new data triggers a background job (`FastAPI BackgroundTasks`) to retrain the Risk Model immediately.
 *   **ACID Compliance**: Transactional integrity ensures that if any row in a batch is invalid, the entire upload is rolled back to prevent data corruption.
+  <img width="1918" height="935" alt="Screenshot 2026-01-31 105819" src="https://github.com/user-attachments/assets/19608eb8-8fe5-4ea5-ab63-a9ba3a42e23a" />
+
 
 ### 4. Agent Copilot ("Dr. Smith")
 *A RAG-powered conversational interface for instant answers.*
@@ -155,6 +142,7 @@ clinical-flow/
     *   **Executive Summary**: High-level study health overview.
 *   **GenAI Authorship**: **Google Gemini 2.0 Pro** analyzes the raw metrics to write a human-like narrative summary, highlighting key risks and trends.
 *   **PDF Export**: Instant serialization of the generated report for offline sharing and audit trails.
+  <img width="1919" height="918" alt="Screenshot 2026-01-31 111424" src="https://github.com/user-attachments/assets/d0d3a7de-5d76-4201-af63-f5df28ef2c80" />
 
 ---
 
