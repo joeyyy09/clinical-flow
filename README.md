@@ -7,7 +7,7 @@
 ## Executive Summary
 **Clinical Flow** is an advanced **AI-powered Risk Surveillance Platform** engineered to solve the "Data Fragmentation" crisis in clinical trials. By unifying disparate operational logs (EDC, Safety, Lab) into a single **Knowledge Graph**, it enables real-time risk detection, predictive analytics, and autonomous problem-solving.
 
-> **Hackathon Status**: ✅ Complete | **Architecture**: Service-Oriented | **AI**: Gemini 2.0 Pro + Ensemble ML
+> **Hackathon Status**: Complete | **Architecture**: Service-Oriented | **AI**: Gemini 2.0 Pro + Ensemble ML
 
 This platform explicitly addresses the **Problem Statements**:
 1.  **Fragmented Data** $\rightarrow$ Unified via **Fuzzy Ingestion Logic** into a "Golden Record".
