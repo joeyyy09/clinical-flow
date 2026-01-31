@@ -165,8 +165,7 @@ clinical-flow/
     cd backend
     pip install -r requirements.txt
     python -m spacy download en_core_web_sm
-    # Train the models
-    python train_all.py
+    # ML model is pre-trained and ready to use!
     ```
 
 3.  **Frontend Setup**
