@@ -19,19 +19,14 @@ def train_model():
     # Features and Target
     # Expanded feature set for better accuracy (approx 80-90% target) avoiding leakage (e.g. calculated_dqi)
     features = [
-        'total_missing_pages', 
+        'sae_count', 
+        'missing_pages', 
         'subject_count', 
-        'sae_review_rate', 
-        'missing_per_subject',
-        'deviations_per_subject',
-        'queries_per_subject',
-        'avg_query_latency',
-        'signature_integrity',
-        'coding_completion_rate',
-        'missing_burden_per_subject'
+        'review_rate', 
+        'missing_per_subject'
     ]
     X = df[features]
-    y = df['risk_label']
+    y = df['target']
 
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 

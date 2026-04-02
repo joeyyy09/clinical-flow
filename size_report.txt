@@ -1,0 +1,30 @@
+--- Backend ---
+backend\.env: 0.00 MB
+backend\actual_data.txt: 0.07 MB
+backend\backend.log: 0.75 MB
+backend\clinical_trials.db: 413.02 MB
+backend\core: 0.05 MB
+backend\debug_edc_ingest.py: 0.00 MB
+backend\ingestion.log: 0.00 MB
+backend\main.py: 0.00 MB
+backend\ml: 22.42 MB
+backend\README.md: 0.00 MB
+backend\report_output.txt: 0.07 MB
+backend\requirements-ml.txt: 0.00 MB
+backend\requirements.txt: 0.00 MB
+backend\routers: 0.08 MB
+backend\scripts: 0.03 MB
+backend\services: 0.23 MB
+backend\test_data: 0.01 MB
+backend\uploads: 0.04 MB
+backend\uvicorn.log: 0.51 MB
+backend\venv: 21.99 MB
+backend\verify_dashboard.py: 0.00 MB
+backend\verify_refactor.py: 0.00 MB
+backend\__pycache__: 0.05 MB
+
+--- Rules ---
+rules\dataset: 0.00 MB
+rules\DatasetGuidanceDocument.txt: 0.01 MB
+rules\QC Anonymized Study Files: 113.20 MB
+rules\User_Requirements_Document.txt: 0.00 MB

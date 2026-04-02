@@ -30,10 +30,17 @@ const RiskMonitor = ({ searchQuery = "" }) => {
     const [ mlInsightsOpen, setMlInsightsOpen ] = useState( false );
     const [selectedSite, setSelectedSite] = useState(null);
     const [ mlInsightsSite, setMlInsightsSite ] = useState( null );
+    const [currentPage, setCurrentPage] = useState(1);
+    const pageSize = 25;
 
     useEffect(() => {
         fetchRiskMonitorData();
     }, [fetchRiskMonitorData]);
+
+    useEffect(() => {
+        // Reset to first page when search or study filter changes
+        setCurrentPage(1);
+    }, [searchQuery, selectedStudy]);
 
     const handleGenerateReport = async () => {
         const success = await generateReport();
@@ -60,10 +67,12 @@ const RiskMonitor = ({ searchQuery = "" }) => {
         let sortableItems = [...filteredData];
         if (sortConfig !== null) {
             sortableItems.sort((a, b) => {
-                if (a[sortConfig.key] < b[sortConfig.key]) {
+                const aVal = a[sortConfig.key] ?? 0;
+                const bVal = b[sortConfig.key] ?? 0;
+                if (aVal < bVal) {
                     return sortConfig.direction === 'ascending' ? -1 : 1;
                 }
-                if (a[sortConfig.key] > b[sortConfig.key]) {
+                if (aVal > bVal) {
                     return sortConfig.direction === 'ascending' ? 1 : -1;
                 }
                 return 0;
@@ -71,6 +80,13 @@ const RiskMonitor = ({ searchQuery = "" }) => {
         }
         return sortableItems;
     }, [filteredData, sortConfig]);
+
+    const paginatedData = React.useMemo(() => {
+        const start = (currentPage - 1) * pageSize;
+        return sortedData.slice(start, start + pageSize);
+    }, [sortedData, currentPage, pageSize]);
+
+    const totalPages = Math.ceil(sortedData.length / pageSize);
 
     const requestSort = (key) => {
         let direction = 'ascending';
@@ -98,6 +114,20 @@ const RiskMonitor = ({ searchQuery = "" }) => {
         }
     };
 
+    const getRecommendation = (risk, missing, sae, deviations) => {
+        if (risk === "High") {
+            if (deviations > 5) return "Investigative Audit: High Protocol Deviations detected.";
+            if (missing > 50) return "Data Clean-up Drive: Significant backlog of missing pages.";
+            if (sae > 10) return "Medical Monitoring: Urgent SAE review required.";
+            return "Enhanced Surveillance: Multiple high-risk indicators identified.";
+        } else if (risk === "Medium") {
+            if (missing > 20) return "Targeted SDV: Focus on missing core CRF pages.";
+            return "Remote Monitoring: Review unreviewed SAEs and queries.";
+        } else {
+            return "Routine Surveillance: Site performance within nominal range.";
+        }
+    };
+
     const getActionStatus = (status) => {
         if (!status || status === 'No Action') return { color: 'text-slate-400 italic', label: '-' };
         if (status === 'Urgent') return { color: 'bg-rose-100 text-rose-700 border border-rose-200', label: 'Urgent' };
@@ -107,7 +137,42 @@ const RiskMonitor = ({ searchQuery = "" }) => {
         return { color: 'bg-slate-100 text-slate-600', label: status };
     };
 
-    if (loading) return <div className="p-8 text-slate-400">Loading risk analysis engine...</div>;
+    if (loading) return (
+        <div className="space-y-6 animate-pulse">
+            {/* Header skeleton */}
+            <div className="flex items-center justify-between mb-2">
+                <div>
+                    <div className="h-7 w-40 bg-slate-200 dark:bg-slate-700 rounded-lg mb-2" />
+                    <div className="h-4 w-72 bg-slate-100 dark:bg-slate-800 rounded" />
+                </div>
+                <div className="flex gap-2">
+                    <div className="h-9 w-32 bg-slate-200 dark:bg-slate-700 rounded-lg" />
+                    <div className="h-9 w-40 bg-blue-200 dark:bg-blue-900/40 rounded-lg" />
+                </div>
+            </div>
+            {/* Summary cards skeleton */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                {[...Array(4)].map((_, i) => (
+                    <div key={i} className="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm h-20" />
+                ))}
+            </div>
+            {/* Table skeleton */}
+            <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+                <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-700 h-12 bg-slate-50 dark:bg-slate-800/50" />
+                <div className="divide-y divide-slate-100 dark:divide-slate-700">
+                    {[...Array(8)].map((_, i) => (
+                        <div key={i} className="flex gap-4 px-6 py-4">
+                            <div className="h-4 w-20 bg-slate-200 dark:bg-slate-700 rounded" />
+                            <div className="h-4 w-10 bg-slate-100 dark:bg-slate-800 rounded" />
+                            <div className="h-4 w-24 bg-slate-100 dark:bg-slate-800 rounded" />
+                            <div className="h-4 flex-1 bg-slate-100 dark:bg-slate-800 rounded" />
+                            <div className="h-4 w-16 bg-slate-200 dark:bg-slate-700 rounded" />
+                        </div>
+                    ))}
+                </div>
+            </div>
+        </div>
+    );
 
     return (
         <div className="space-y-6">
@@ -210,10 +275,10 @@ const RiskMonitor = ({ searchQuery = "" }) => {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
-                                {sortedData.map((site, index) => (
+                                {paginatedData.map((site, index) => (
                                     <motion.tr
-                                        initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: index * 0.05 }}
-                                        key={index} className="hover:bg-slate-50/80 dark:hover:bg-slate-700/50 transition-colors"
+                                        initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: Math.min(index, 10) * 0.03 }}
+                                        key={site.site} className="hover:bg-slate-50/80 dark:hover:bg-slate-700/50 transition-colors"
                                     >
                                         <td className="px-6 py-4 font-medium text-slate-700 dark:text-slate-200">{site.site}</td>
                                         <td className="px-6 py-4">
@@ -270,7 +335,9 @@ const RiskMonitor = ({ searchQuery = "" }) => {
                                                 {getActionStatus(site.action_status).label}
                                             </span>
                                         </td>
-                                        <td className="px-6 py-4 text-slate-500 dark:text-slate-400 text-xs italic">{site.recommendation}</td>
+                                        <td className="px-6 py-4 text-slate-500 dark:text-slate-400 text-xs italic">
+                                            {getRecommendation(site.risk_level, site.missing_pages, site.sae_count, site.protocol_deviations)}
+                                        </td>
                                         <td className="px-6 py-4">
                                             <div className="flex flex-col gap-1">
                                                 <button onClick={() => { setSelectedSite(site.site); setCommentModalOpen(true); }} className="text-blue-600 hover:text-blue-800 text-[10px] font-bold uppercase tracking-wider">Comment</button>
@@ -290,6 +357,50 @@ const RiskMonitor = ({ searchQuery = "" }) => {
                         <button onClick={() => window.location.reload()} className="text-blue-600 dark:text-blue-400 text-sm mt-2 hover:underline">
                             Clear filters
                         </button>
+                    </div>
+                )}
+                
+                {/* Pagination Controls */}
+                {filteredData.length > pageSize && (
+                    <div className="px-6 py-4 border-t border-slate-100 dark:border-slate-700 flex items-center justify-between bg-white dark:bg-slate-800">
+                        <div className="text-xs text-slate-500">
+                            Showing <span className="font-medium">{(currentPage - 1) * pageSize + 1}</span> to <span className="font-medium">{Math.min(currentPage * pageSize, sortedData.length)}</span> of <span className="font-medium">{sortedData.length}</span> sites
+                        </div>
+                        <div className="flex gap-2">
+                            <button
+                                onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                                disabled={currentPage === 1}
+                                className="px-3 py-1 border border-slate-200 dark:border-slate-700 rounded text-xs font-medium hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50"
+                            >
+                                Previous
+                            </button>
+                            <div className="flex items-center gap-1">
+                                {[...Array(Math.min(5, totalPages))].map((_, i) => {
+                                    let pageNum;
+                                    if (totalPages <= 5) pageNum = i + 1;
+                                    else if (currentPage <= 3) pageNum = i + 1;
+                                    else if (currentPage >= totalPages - 2) pageNum = totalPages - 4 + i;
+                                    else pageNum = currentPage - 2 + i;
+                                    
+                                    return (
+                                        <button
+                                            key={pageNum}
+                                            onClick={() => setCurrentPage(pageNum)}
+                                            className={`w-8 h-8 rounded text-xs font-medium transition-colors ${currentPage === pageNum ? 'bg-blue-600 text-white' : 'hover:bg-slate-100 dark:hover:bg-slate-700'}`}
+                                        >
+                                            {pageNum}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                            <button
+                                onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                                disabled={currentPage === totalPages}
+                                className="px-3 py-1 border border-slate-200 dark:border-slate-700 rounded text-xs font-medium hover:bg-slate-50 dark:hover:bg-slate-700 disabled:opacity-50"
+                            >
+                                Next
+                            </button>
+                        </div>
                     </div>
                 )}
             </div>

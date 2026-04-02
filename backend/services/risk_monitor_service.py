@@ -3,9 +3,27 @@ from sqlalchemy import func
 from core import models
 import pandas as pd
 import random
+import time
 from typing import List, Dict
 from services.analytics_service import AnalyticsService
 from services.ml_service_risk import MLRiskService
+
+# --- Simple in-memory TTL cache ---
+_cache: dict = {}
+_CACHE_TTL = 120  # 2-minute cache (was 5 min — risk data should refresh more often)
+
+def _get_cache(key: str):
+    entry = _cache.get(key)
+    if entry and (time.time() - entry['ts']) < _CACHE_TTL:
+        return entry['data']
+    return None
+
+def _set_cache(key: str, data):
+    _cache[key] = {'ts': time.time(), 'data': data}
+
+def invalidate_cache():
+    """Call this after ingestion to force a fresh risk calculation."""
+    _cache.clear()
 
 class RiskMonitorService:
     @staticmethod
@@ -13,6 +31,10 @@ class RiskMonitorService:
         """
         Aggregates site risk scores for heatmap visualization using fast aggregation.
         """
+        cached = _get_cache('risk_heatmap')
+        if cached is not None:
+            return cached
+            
         # Fast aggregation using SQL instead of per-site DQI calculation
         from sqlalchemy import func
         
@@ -26,11 +48,17 @@ class RiskMonitorService:
          .limit(10)\
          .all()
         
-        return [{"site": r.site_id, "risk_score": int(r.risk_score or 0)} for r in results_raw]
+        result = [{"site": r.site_id, "risk_score": int(r.risk_score or 0)} for r in results_raw]
+        _set_cache('risk_heatmap', result)
+        return result
 
     @staticmethod
     def get_detailed_risk_data(db: Session) -> List[Dict]:
         """Aggregates multi-source risk metrics for all sites using Optimized Batch Queries."""
+        cached = _get_cache('risk_monitor')
+        if cached is not None:
+            return cached
+            
         # Fast aggregation using Group By to avoid N+1 query problem
         from services.ml_service_risk import MLRiskService
         
@@ -63,21 +91,29 @@ class RiskMonitorService:
         p_sae_q = db.query(models.SAEMetrics.site, func.count(models.SAEMetrics.id)).filter(models.SAEMetrics.review_status != 'Completed').group_by(models.SAEMetrics.site).all()
         p_sae_map = {r[0]: r[1] for r in p_sae_q}
 
-        # Uncoded Coding (Join)
-        # MedDRA
-        med_q = db.query(models.EDCMetrics.site_id, func.count(models.MedDRACoding.id))\
-                  .join(models.MedDRACoding, models.EDCMetrics.subject_id == models.MedDRACoding.subject)\
-                  .filter(models.MedDRACoding.coding_status.ilike('%uncoded%'))\
-                  .group_by(models.EDCMetrics.site_id).all()
-        uncoded_map = {r[0]: r[1] for r in med_q}
-        
-        # WHODrug
-        who_q = db.query(models.EDCMetrics.site_id, func.count(models.WHODrugCoding.id))\
-                  .join(models.WHODrugCoding, models.EDCMetrics.subject_id == models.WHODrugCoding.subject)\
-                  .filter(models.WHODrugCoding.coding_status.ilike('%uncoded%'))\
-                  .group_by(models.EDCMetrics.site_id).all()
-        for r in who_q:
-            uncoded_map[r[0]] = uncoded_map.get(r[0], 0) + r[1]
+        # Uncoded Coding — query coding tables directly (no cross-join, no leading-% LIKE)
+        # Build subject→site_id map from edc_metrics first (one fast query)
+        subj_site_q = db.query(models.EDCMetrics.subject_id, models.EDCMetrics.site_id).all()
+        subj_to_site = {r[0]: r[1] for r in subj_site_q}
+
+        # MedDRA uncoded subjects (suffix-anchored — index-friendly)
+        med_q = db.query(models.MedDRACoding.subject, func.count(models.MedDRACoding.id))\
+                  .filter(models.MedDRACoding.coding_status.ilike('uncoded%'))\
+                  .group_by(models.MedDRACoding.subject).all()
+        uncoded_map: dict = {}
+        for subj, cnt in med_q:
+            site = subj_to_site.get(subj)
+            if site:
+                uncoded_map[site] = uncoded_map.get(site, 0) + cnt
+
+        # WHODrug uncoded subjects
+        who_q = db.query(models.WHODrugCoding.subject, func.count(models.WHODrugCoding.id))\
+                  .filter(models.WHODrugCoding.coding_status.ilike('uncoded%'))\
+                  .group_by(models.WHODrugCoding.subject).all()
+        for subj, cnt in who_q:
+            site = subj_to_site.get(subj)
+            if site:
+                uncoded_map[site] = uncoded_map.get(site, 0) + cnt
             
         # 5. Fetch Site Action Status (Latest Comment Tag)
         # Fetch all comments ordered by date asc, so last one overwrites
@@ -88,6 +124,8 @@ class RiskMonitorService:
             action_map[c.site_number] = c.tag
 
         results = []
+        batch_input = []
+        
         for s in edc_stats:
             site_id = s.site_id
             
@@ -137,39 +175,41 @@ class RiskMonitorService:
                 if k in action_map: 
                     action_status = action_map[k]
                     break 
+            
+            # Prepare Batch Input
+            batch_input.append({
+                'missing_pages': missing_pages,
+                'sae_count': sae_count,
+                'subject_count': subject_count
+            })
 
-            results.append({
+            res_obj = {
                 "site": site_id,
-                "country": s.country,
                 "study_id": s.study_id,
+                "country": s.country or "Unknown",
                 "sae_count": sae_count,
                 "missing_pages": missing_pages,
                 "subject_count": subject_count,
                 "query_latency": int((s.sum_latency or 0) / subject_count),
-                "query_resolution_rate": 0,
                 "protocol_deviations": s.sum_deviations or 0,
                 "clean_patient_rate": clean_patient_rate,
                 "risk_level": risk_level,
-                "predicted_risk": MLRiskService.predict_site_risk(missing_pages, sae_count, subject_count),
                 "dqi": dqi,
-                "milestone_readiness": clean_patient_rate,
-                "action_status": action_status,
-                "recommendation": RiskMonitorService.generate_recommendation(risk_level, missing_pages, sae_count, s.sum_deviations or 0)
-            })
+                "milestone_readiness": clean_patient_rate
+            }
+            if action_status != "No Action":
+                res_obj["action_status"] = action_status
+                
+            results.append(res_obj)
+            
+        # Execute Batch Prediction
+        if batch_input:
+            predictions = MLRiskService.predict_batch(batch_input)
+            for i, result in enumerate(results):
+                result['predicted_risk'] = predictions[i]
             
         results.sort(key=lambda x: x['dqi'])
+        _set_cache('risk_monitor', results)
         return results
 
-    @staticmethod
-    def generate_recommendation(risk: str, missing: int, sae: int, deviations: int) -> str:
-        """Generates AI-driven monitoring recommendations based on specific URD triggers."""
-        if risk == "High":
-            if deviations > 5: return "Investigative Audit: High Protocol Deviations detected."
-            if missing > 50: return "Data Clean-up Drive: Significant backlog of missing pages."
-            if sae > 10: return "Medical Monitoring: Urgent SAE review required."
-            return "Enhanced Surveillance: Multiple high-risk indicators identified."
-        elif risk == "Medium":
-            if missing > 20: return "Targeted SDV: Focus on missing core CRF pages."
-            return "Remote Monitoring: Review unreviewed SAEs and queries."
-        else:
-            return "Routine Surveillance: Site performance within nominal range."
+

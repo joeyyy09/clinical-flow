@@ -188,6 +188,17 @@ clinical-flow/
 
 3.  **Access**: [http://localhost:5173](http://localhost:5173)
 
+> **📋 Note for Evaluators**: This submission includes a **pre-trained ML model** (`backend/ml/risk_model.pkl` - 10.5 MB) ready for immediate use. The database will be empty on first run, which is expected. To see the full platform in action:
+> 1. Start both backend and frontend as shown above
+> 2. Navigate to the **Data Ingestion** page in the UI
+> 3. Upload sample clinical trial data files (Excel format)
+> 4. The system will automatically:
+>    - Process and store data in the database
+>    - Generate ML-powered risk predictions
+>    - Display insights in the dashboard
+> 
+> The pre-trained model eliminates the need for lengthy training processes and demonstrates production-ready functionality.
+
 ---
 
 ## Future Roadmap

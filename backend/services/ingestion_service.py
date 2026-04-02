@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 from core.database import SessionLocal, engine
 from core import models
+from typing import Any
 
 class IngestionService:
     # Go up 3 levels: backend/services/ingestion.py -> backend/services -> backend -> root
@@ -23,7 +24,16 @@ class IngestionService:
     """
 
     @staticmethod
-    def get_study_id_from_filename(filename):
+    def get_study_id_from_filename(filename: str) -> str:
+        """
+        Extracts a standardized Study ID from a filename using regex.
+        
+        Args:
+            filename (str): The uploaded filename (e.g., "SAE_Log_Study_12.xlsx")
+            
+        Returns:
+            str: Normalized Study ID (e.g., "STUDY_12") or "UNKNOWN_STUDY"
+        """
         # Matches "Study 1", "Study_1", "Study-1", "Study22"
         match = re.search(r"Study[ _-]*\d+", filename, re.IGNORECASE)
         if match:
@@ -35,14 +45,30 @@ class IngestionService:
         return "UNKNOWN_STUDY"
 
     @staticmethod
-    def normalize_column(col_name):
+    def normalize_column(col_name: Any) -> str:
+        """
+        Normalizes a column header string for fuzzy matching.
+        Removes special characters, converting to lowercase snake_case.
+        
+        Example: "Patient # ID" -> "patient_id"
+        """
         if not isinstance(col_name, str):
             return str(col_name)
         clean = re.sub(r'[^a-zA-Z0-9\s]', '', col_name)
         return clean.strip().lower().replace(' ', '_')
 
     @staticmethod
-    def get_column_value(row, possible_names):
+    def get_column_value(row: pd.Series, possible_names: list) -> Any:
+        """
+        Fuzzy retrieves a value from a DataFrame row by checking multiple potential column names.
+        
+        Args:
+            row (pd.Series): The data row
+            possible_names (list): List of potential column headers (e.g., ['SiteID', 'Site #'])
+            
+        Returns:
+            Any: The found value or empty string if not found.
+        """
         row_map = {IngestionService.normalize_column(k): k for k in row.index}
         for name in possible_names:
             norm_name = IngestionService.normalize_column(name)
@@ -89,6 +115,7 @@ class IngestionService:
             db.commit()
             print(f"✅ Ingested {count} SAE Metrics from {os.path.basename(filepath)}")
         except Exception as e:
+            db.rollback()
             print(f"❌ Error ingesting SAE Metrics {os.path.basename(filepath)}: {e}")
 
     @staticmethod
@@ -120,10 +147,22 @@ class IngestionService:
             db.commit()
             print(f"✅ Ingested {count} Missing Pages from {os.path.basename(filepath)}")
         except Exception as e:
+            db.rollback()
             print(f"❌ Error ingesting Missing Pages {os.path.basename(filepath)}: {e}")
 
     @staticmethod
     def ingest_edc_metrics(db: Session, filepath: str):
+        """
+        Ingest EDC Metrics from Rave/Inform exports.
+        
+        HANDLING COMPLEX HEADERS:
+        Refrence files often have a 3-row header structure:
+        Row 0: Domain (e.g., "Demographics")
+        Row 1: Sub-Group (e.g., "Visit 1")
+        Row 2: Actual Variable (e.g., "Date")
+        
+        We coalesce these into a single column name by prioritizing Row 2 > Row 1 > Row 0.
+        """
         try:
             # Read first few rows without header to inspect structure
             # We assume Row 0, 1, 2 are headers. Row 3 is metadata. Data starts later.
@@ -255,6 +294,7 @@ class IngestionService:
             db.commit()
             print(f"✅ Ingested {count} EDC Metrics from {os.path.basename(filepath)}")
         except Exception as e:
+            db.rollback()
             print(f"❌ Error ingesting EDC Metrics {os.path.basename(filepath)}: {e}")
 
     @staticmethod
@@ -288,6 +328,7 @@ class IngestionService:
             db.commit()
             print(f"✅ Ingested {count} Visit Projections from {os.path.basename(filepath)}")
         except Exception as e:
+            db.rollback()
             print(f"❌ Error ingesting Visit Projections {os.path.basename(filepath)}: {e}")
 
     @staticmethod
@@ -319,6 +360,7 @@ class IngestionService:
             db.commit()
             print(f"✅ Ingested {count} Missing Lab Data records from {os.path.basename(filepath)}")
         except Exception as e:
+            db.rollback()
             print(f"❌ Error ingesting Missing Lab Data {os.path.basename(filepath)}: {e}")
 
     @staticmethod
@@ -343,6 +385,7 @@ class IngestionService:
             db.commit()
             print(f"✅ Ingested {count} Inactivated Forms from {os.path.basename(filepath)}")
         except Exception as e:
+            db.rollback()
             print(f"❌ Error ingesting Inactivated Forms {os.path.basename(filepath)}: {e}")
 
     @staticmethod
@@ -366,6 +409,7 @@ class IngestionService:
             db.commit()
             print(f"✅ Ingested {count} EDRR Issues from {os.path.basename(filepath)}")
         except Exception as e:
+            db.rollback()
             print(f"❌ Error ingesting EDRR Issues {os.path.basename(filepath)}: {e}")
 
     @staticmethod
@@ -420,6 +464,7 @@ class IngestionService:
             
             db.commit()
         except Exception as e:
+            db.rollback()
             print(f"❌ Error ingesting Coding Report {os.path.basename(filepath)}: {e}")
 
 
@@ -451,64 +496,70 @@ class IngestionService:
             db.commit()
             print(f"✅ Ingested {count} CRA Activity Logs from {os.path.basename(filepath)}")
         except Exception as e:
+            db.rollback()
             print(f"❌ Error ingesting CRA Activity Logs {os.path.basename(filepath)}: {e}")
 
     @staticmethod
     def run_full_pipeline():
         print(f"🚀 Starting full ingestion pipeline...")
         db = SessionLocal()
-        scan_dirs = [IngestionService.DATA_DIR, IngestionService.RULES_DATA_DIR, os.path.join(os.getcwd(), "uploads")]
-        
-        for directory in scan_dirs:
-            if not os.path.exists(directory): 
-                print(f"Directory not found: {directory}")
-                continue
-                
-            print(f"📂 Scanning {directory}...")
-            for root, dirs, files in os.walk(directory):
-                for file in files:
-                    full_path = os.path.join(root, file)
-                    if file.startswith("~$") or file.startswith(".") or not file.endswith(('.xlsx', '.xls')): continue
-                    
-                    # Fuzzy matching for various file naming conventions
-                    filename_lower = file.lower()
-                    
-                    try:
-                        if "esae" in filename_lower or ("sae" in filename_lower and "dashboard" in filename_lower):
-                            IngestionService.ingest_sae_metrics(db, full_path)
-                        elif "missing" in filename_lower and "page" in filename_lower:
-                            IngestionService.ingest_missing_pages(db, full_path)
-                        elif "edc_metrics" in filename_lower or "edc metrics" in filename_lower:
-                            IngestionService.ingest_edc_metrics(db, full_path)
-                        elif "visit projection" in filename_lower or "visit_projection" in filename_lower:
-                            IngestionService.ingest_visit_projections(db, full_path)
-                        elif "missing" in filename_lower and "lab" in filename_lower:
-                            IngestionService.ingest_missing_lab_data(db, full_path)
-                        elif "inactivated" in filename_lower:
-                            IngestionService.ingest_inactivated_forms(db, full_path)
-                        elif "edrr" in filename_lower:
-                            IngestionService.ingest_edrr_issues(db, full_path)
-                        elif "coding" in filename_lower and ("meddra" in filename_lower or "whod" in filename_lower or "global" in filename_lower):
-                            IngestionService.ingest_coding_reports(db, full_path)
-                        elif "cra" in filename_lower and ("activity" in filename_lower or "log" in filename_lower):
-                            IngestionService.ingest_cra_activity_logs(db, full_path)
-                    except Exception as e:
-                        print(f"⚠️ Failed to ingest {file}: {e}")
-        
-        IngestionService.calculate_derived_latencies(db)
-        
-        # 3. AI Enrichment Step
-        print("🤖 Triggering AI Risk Models...")
         try:
-            from services.ml_prediction_service import MLPredictionService
-            # Force re-evaluation of all sites with new data
-            MLPredictionService.predict_batch(None) 
-            print("✅ AI Risk Scores Updated")
+            scan_dirs = [IngestionService.DATA_DIR, IngestionService.RULES_DATA_DIR, os.path.join(os.getcwd(), "uploads")]
+            
+            for directory in scan_dirs:
+                if not os.path.exists(directory): 
+                    print(f"Directory not found: {directory}")
+                    continue
+                    
+                print(f"📂 Scanning {directory}...")
+                for root, dirs, files in os.walk(directory):
+                    for file in files:
+                        full_path = os.path.join(root, file)
+                        if file.startswith("~$") or file.startswith(".") or not file.endswith(('.xlsx', '.xls')): continue
+                        
+                        # Fuzzy matching for various file naming conventions
+                        filename_lower = file.lower()
+                        
+                        try:
+                            if "esae" in filename_lower or ("sae" in filename_lower and "dashboard" in filename_lower):
+                                IngestionService.ingest_sae_metrics(db, full_path)
+                            elif "missing" in filename_lower and "page" in filename_lower:
+                                IngestionService.ingest_missing_pages(db, full_path)
+                            elif "edc_metrics" in filename_lower or "edc metrics" in filename_lower:
+                                IngestionService.ingest_edc_metrics(db, full_path)
+                            elif "visit projection" in filename_lower or "visit_projection" in filename_lower:
+                                IngestionService.ingest_visit_projections(db, full_path)
+                            elif "missing" in filename_lower and "lab" in filename_lower:
+                                IngestionService.ingest_missing_lab_data(db, full_path)
+                            elif "inactivated" in filename_lower:
+                                IngestionService.ingest_inactivated_forms(db, full_path)
+                            elif "edrr" in filename_lower:
+                                IngestionService.ingest_edrr_issues(db, full_path)
+                            elif "coding" in filename_lower and ("meddra" in filename_lower or "whod" in filename_lower or "global" in filename_lower):
+                                IngestionService.ingest_coding_reports(db, full_path)
+                            elif "cra" in filename_lower and ("activity" in filename_lower or "log" in filename_lower):
+                                IngestionService.ingest_cra_activity_logs(db, full_path)
+                        except Exception as e:
+                            print(f"⚠️ Failed to ingest {file}: {e}")
+            
+            IngestionService.calculate_derived_latencies(db)
+            
+            # 3. AI Enrichment Step
+            print("🤖 Triggering AI Risk Models...")
+            try:
+                from services.ml_prediction_service import MLPredictionService
+                # Force re-evaluation of all sites with new data
+                MLPredictionService.predict_batch(None) 
+                print("✅ AI Risk Scores Updated")
+            except Exception as e:
+                print(f"⚠️ AI Model Trigger Warning: {e}")
+            
+            print("✨ Ingestion Pipeline Complete")
         except Exception as e:
-            print(f"⚠️ AI Model Trigger Warning: {e}")
-
-        db.close()
-        print("✨ Ingestion Pipeline Complete")
+            print(f"❌ Pipeline Error: {e}")
+            db.rollback()
+        finally:
+            db.close()
 
     @staticmethod
     def calculate_derived_latencies(db: Session):
@@ -542,5 +593,6 @@ class IngestionService:
             db.commit()
             print(f"✅ Updated derived latency for {updated_count} subjects having open queries.")
         except Exception as e:
+            db.rollback()
             print(f"⚠️ Latency derivation warning: {e}")
 

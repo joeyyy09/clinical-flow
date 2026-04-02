@@ -1,0 +1,53 @@
+Estimated Zip Size: 172.19 MB
+
+Top 50 Largest Files:
+29.50 MB - .\Screen Recordings\Screen Recording 2026-01-31 133811.mp4
+29.50 MB - .\submission\Screen Recordings\Screen Recording 2026-01-31 133811.mp4
+28.36 MB - .\Screen Recordings\Screen Recording 2026-01-06 232339.mp4
+28.36 MB - .\submission\Screen Recordings\Screen Recording 2026-01-06 232339.mp4
+10.46 MB - .\backend\ml\risk_model.pkl
+10.46 MB - .\submission\backend\ml\risk_model.pkl
+7.42 MB - .\backend\ml\advanced_risk_model.pkl
+7.42 MB - .\submission\backend\ml\advanced_risk_model.pkl
+3.94 MB - .\Screen Recordings\Screen Recording 2025-12-31 155220.mp4
+3.94 MB - .\submission\Screen Recordings\Screen Recording 2025-12-31 155220.mp4
+3.25 MB - .\backend\ml\shap_explainer.pkl
+3.25 MB - .\submission\backend\ml\shap_explainer.pkl
+1.09 MB - .\backend\ml\processed_features.csv
+1.09 MB - .\submission\backend\ml\processed_features.csv
+0.75 MB - .\backend\backend.log
+0.51 MB - .\backend\uvicorn.log
+0.17 MB - .\docs\screenshots\risk_monitor.png
+0.17 MB - .\submission\docs\screenshots\risk_monitor.png
+0.15 MB - .\docs\screenshots\ingestion_logs.png
+0.15 MB - .\submission\docs\screenshots\ingestion_logs.png
+0.14 MB - .\frontend\package-lock.json
+0.14 MB - .\submission\frontend\package-lock.json
+0.13 MB - .\docs\screenshots\overview_dark.png
+0.13 MB - .\submission\docs\screenshots\overview_dark.png
+0.11 MB - .\docs\screenshots\reports_page.png
+0.11 MB - .\submission\docs\screenshots\reports_page.png
+0.07 MB - .\backend\actual_data.txt
+0.07 MB - .\backend\report_output.txt
+0.07 MB - .\submission\backend\actual_data.txt
+0.07 MB - .\submission\backend\report_output.txt
+0.05 MB - .\outputs\test_predictions.csv
+0.05 MB - .\submission\outputs\test_predictions.csv
+0.05 MB - .\backend\ml\test_set_predictions.csv
+0.05 MB - .\submission\backend\ml\test_set_predictions.csv
+0.03 MB - .\backend\ml\feature_importance.png
+0.03 MB - .\submission\backend\ml\feature_importance.png
+0.03 MB - .\backend\services\ingestion_service.py
+0.03 MB - .\submission\backend\services\ingestion_service.py
+0.03 MB - .\backend\services\report_generator_llm.py
+0.03 MB - .\submission\backend\services\report_generator_llm.py
+0.03 MB - .\frontend\src\pages\Reports.jsx
+0.03 MB - .\submission\frontend\src\pages\Reports.jsx
+0.02 MB - .\backend\ml\advanced_model.py
+0.02 MB - .\submission\backend\ml\advanced_model.py
+0.02 MB - .\backend\ml\confusion_matrix.png
+0.02 MB - .\submission\backend\ml\confusion_matrix.png
+0.02 MB - .\frontend\src\pages\RiskMonitor.jsx
+0.02 MB - .\submission\frontend\src\pages\RiskMonitor.jsx
+0.02 MB - .\backend\ml\feature_engineering.py
+0.02 MB - .\submission\backend\ml\feature_engineering.py

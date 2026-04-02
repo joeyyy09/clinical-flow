@@ -1,7 +1,13 @@
 import traceback
+import time
 import pandas as pd
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from .llm_service import LLMService
+from .database import SessionLocal
+
+# Simple TTL cache for get_summary — avoids re-querying on every page load
+_summary_cache: dict = {}
+_SUMMARY_CACHE_TTL = 300  # 5 minutes
 
 class ClinicalAgent:
     """
@@ -94,49 +100,48 @@ class ClinicalAgent:
         """
         Provides a high-level summary of the clinical trial data for the dashboard.
         Returns strict format for frontend: [ {Metric: name, Value: count}, ... ]
+        Cached for 5 minutes to avoid repeated DB scans on every page load.
         """
+        cached = _summary_cache.get('summary')
+        if cached and (time.time() - cached['ts']) < _SUMMARY_CACHE_TTL:
+            return cached['data']
+
         try:
-            with self.engine.connect() as conn:
-                # 1. Active Subjects (EDC Metrics)
-                subjects_df = pd.read_sql("SELECT COUNT(DISTINCT subject_id) as val FROM edc_metrics", conn)
-                subject_count = int(subjects_df['val'].iloc[0]) if not subjects_df.empty else 0
-                
-                # 2. Missing Pages (Global + EDC)
-                # Naive sum for high level
-                missing_df = pd.read_sql("SELECT SUM(missing_pages) as val FROM edc_metrics", conn)
-                edc_missing = int(missing_df['val'].iloc[0]) if not missing_df.empty and pd.notna(missing_df['val'].iloc[0]) else 0
-                
-                # Global Missing Pages
-                # Note: table name is missing_pages, column missing_days usually acts as count or we count rows?
-                # Actually earlier verification showed 'missing_pages' table has 'site_number' and 'missing_days'.
-                # Let's count rows in missing_pages table as a proxy for "pages missing" or sum 'missing_days' if that's the metric.
-                # Ingestion logic for missing_pages: 
-                # item = models.MissingPages(..., missing_days=row['Missing Days (Integers)'])
-                # So missing_days is likely the count.
-                global_missing_df = pd.read_sql("SELECT SUM(missing_days) as val FROM missing_pages", conn)
-                global_missing = int(global_missing_df['val'].iloc[0]) if not global_missing_df.empty and pd.notna(global_missing_df['val'].iloc[0]) else 0
-                
-                missing_count = max(edc_missing, global_missing)
-                
-                # 3. SAE Records (Global + EDC)
-                # Using EDC sum
-                sae_df_edc = pd.read_sql("SELECT SUM(esae_review_dm + esae_review_safety) as val FROM edc_metrics", conn)
-                edc_sae = int(sae_df_edc['val'].iloc[0]) if not sae_df_edc.empty and pd.notna(sae_df_edc['val'].iloc[0]) else 0
-                
-                # Global SAEs
-                sae_df_global = pd.read_sql("SELECT COUNT(*) as val FROM sae_metrics", conn) 
-                global_sae = int(sae_df_global['val'].iloc[0]) if not sae_df_global.empty else 0
-                
-                sae_count = max(edc_sae, global_sae)
-                
-                return {
-                    "answer": "Dashboard data loaded.",
-                    "data": [
-                        {"Metric": "SAE Records", "Value": sae_count},
-                        {"Metric": "Missing Pages", "Value": missing_count},
-                        {"Metric": "EDC Metrics", "Value": subject_count} # Frontend expects 'EDC Metrics' for subject count
-                    ]
-                }
+            # Use the shared session pool instead of a separate engine
+            db = SessionLocal()
+            try:
+                subject_count = db.execute(text(
+                    "SELECT COUNT(DISTINCT subject_id) FROM edc_metrics"
+                )).scalar() or 0
+
+                edc_missing = db.execute(text(
+                    "SELECT COALESCE(SUM(missing_pages), 0) FROM edc_metrics"
+                )).scalar() or 0
+
+                global_missing = db.execute(text(
+                    "SELECT COALESCE(SUM(missing_days), 0) FROM missing_pages"
+                )).scalar() or 0
+
+                edc_sae = db.execute(text(
+                    "SELECT COALESCE(SUM(esae_review_dm + esae_review_safety), 0) FROM edc_metrics"
+                )).scalar() or 0
+
+                global_sae = db.execute(text(
+                    "SELECT COUNT(*) FROM sae_metrics"
+                )).scalar() or 0
+            finally:
+                db.close()
+
+            result = {
+                "answer": "Dashboard data loaded.",
+                "data": [
+                    {"Metric": "SAE Records",   "Value": int(max(edc_sae, global_sae))},
+                    {"Metric": "Missing Pages", "Value": int(max(edc_missing, global_missing))},
+                    {"Metric": "EDC Metrics",   "Value": int(subject_count)}
+                ]
+            }
+            _summary_cache['summary'] = {'ts': time.time(), 'data': result}
+            return result
         except Exception as e:
             print(f"Summary Error: {e}")
             return {"answer": "Error loading metrics", "data": []}

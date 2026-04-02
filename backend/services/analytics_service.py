@@ -1,13 +1,29 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from core import models
-import pandas as pd
 import random
+import time
 from typing import List, Dict
+
+# --- Simple in-memory TTL cache ---
+_cache: dict = {}
+_CACHE_TTL = 300  # 5-minute cache
+
+def _get_cache(key: str):
+    entry = _cache.get(key)
+    if entry and (time.time() - entry['ts']) < _CACHE_TTL:
+        return entry['data']
+    return None
+
+def _set_cache(key: str, data):
+    _cache[key] = {'ts': time.time(), 'data': data}
 
 class AnalyticsService:
     @staticmethod
     def calculate_study_health_score(db: Session, study_id: str = None) -> int:
+        cached = _get_cache('health_score')
+        if cached is not None:
+            return cached
         """
         Calculates study DQI (0-100) based on Hackathon weights:
         - Missing Data (25%): Missing Pages + Visits
@@ -69,70 +85,58 @@ class AnalyticsService:
         s_safety = max(0, 100 - (sae_rate * 100)) 
 
         dqi = (s_missing * 0.25) + (s_queries * 0.20) + (s_nc * 0.15) + (s_sdv * 0.20) + (s_safety * 0.20)
-        return int(dqi)
+        result = int(dqi)
+        _set_cache('health_score', result)
+        return result
 
     @staticmethod
     def get_sae_trend(db: Session = None):
         """
-        Returns SAE count trends for the last 6 months based on real data.
+        Returns SAE count trends for the last 6 months using SQL-level aggregation.
         """
         from datetime import datetime, timedelta
         import calendar
-        from dateutil import parser
-        
-        # Return empty structure if no DB
+
+        EMPTY = [
+            {"month": calendar.month_abbr[((datetime.now().month - 5 + m - 1) % 12) + 1], "sae_count": 0}
+            for m in range(6)
+        ]
+
+        cached = _get_cache('sae_trend')
+        if cached is not None:
+            return cached
+
         if not db:
-            return [
-                {"month": "Jul", "sae_count": 0},
-                {"month": "Aug", "sae_count": 0},
-                {"month": "Sep", "sae_count": 0},
-                {"month": "Oct", "sae_count": 0},
-                {"month": "Nov", "sae_count": 0},
-                {"month": "Dec", "sae_count": 0}
-            ]
+            return EMPTY
 
-        # 1. Get raw timestamps
-        results = db.query(models.SAEMetrics.created_timestamp).all()
-        
-        # 2. Process in Python (safer for SQLite string dates)
-        timestamps = []
-        for r in results:
-            if r[0]:
-                try:
-                    # Handle various formats or ISO string
-                    dt = parser.parse(r[0])
-                    timestamps.append(dt)
-                except:
-                    continue
-        
-        if not timestamps:
-             return [
-                {"month": "Jul", "sae_count": 0},
-                {"month": "Aug", "sae_count": 0},
-                {"month": "Sep", "sae_count": 0},
-                {"month": "Oct", "sae_count": 0},
-                {"month": "Nov", "sae_count": 0},
-                {"month": "Dec", "sae_count": 0}
-            ]
-
-        # 3. Aggregate last 6 months
+        # Build the last 6 month/year pairs
         today = datetime.now()
-        trend_data = []
-        
-        # Iterate backwards 5 months + current month
+        months = []
         for i in range(5, -1, -1):
-            target_date = today - timedelta(days=i*30) # Approx month
-            target_month = target_date.month
-            target_year = target_date.year
-            month_name = calendar.month_abbr[target_month]
-            
-            count = sum(
-                1 for t in timestamps 
-                if t.month == target_month and t.year == target_year
-            )
-            
-            trend_data.append({"month": month_name, "sae_count": count})
-            
+            d = today - timedelta(days=i * 30)
+            months.append((d.year, d.month, calendar.month_abbr[d.month]))
+
+        # Use SQLite strftime to group at DB level — much faster than fetching all rows
+        from sqlalchemy import text
+        rows = db.execute(
+            text("""
+                SELECT strftime('%Y', created_timestamp) AS yr,
+                       strftime('%m', created_timestamp) AS mo,
+                       COUNT(*) AS cnt
+                FROM   sae_metrics
+                WHERE  created_timestamp IS NOT NULL
+                GROUP  BY yr, mo
+            """)
+        ).fetchall()
+
+        count_map = {(int(r[0]), int(r[1])): r[2] for r in rows if r[0] and r[1]}
+
+        trend_data = [
+            {"month": name, "sae_count": count_map.get((yr, mo), 0)}
+            for yr, mo, name in months
+        ]
+
+        _set_cache('sae_trend', trend_data)
         return trend_data
 
     @staticmethod
@@ -248,11 +252,19 @@ class AnalyticsService:
     @staticmethod
     def calculate_study_readiness(db: Session, threshold: float = 95.0) -> Dict:
         """
-        Calculates Study-level readiness score using Optimized SQL to avoid N+1.
+        Calculates Study-level readiness score.
+        Uses a single raw SQL UNION ALL CTE to find dirty subjects in one pass,
+        avoiding 4 correlated .in_() subqueries that caused slow cold-cache hits.
         """
-        # 1. Total unique subjects
+        cached = _get_cache('study_readiness')
+        if cached is not None:
+            return cached
+
+        from sqlalchemy import text
+
+        # 1. Total unique active subjects
         total_subjects = db.query(models.EDCMetrics.subject_id).distinct().count()
-        
+
         if total_subjects == 0:
             return {
                 "total_patients": 0,
@@ -263,42 +275,44 @@ class AnalyticsService:
                 "status_color": "rose"
             }
 
-        # 2. Get subjects who ARE NOT clean
-        # We only care about subjects that are in EDCMetrics (active subjects)
-        active_subjects = db.query(models.EDCMetrics.subject_id).distinct()
-        
-        # Dirty filters
-        dirty_sae = db.query(models.SAEMetrics.patient_id).filter(
-            models.SAEMetrics.review_status != 'Completed',
-            models.SAEMetrics.patient_id.in_(active_subjects)
-        )
-        
-        dirty_meddra = db.query(models.MedDRACoding.subject).filter(
-            models.MedDRACoding.coding_status.ilike('%uncoded%'),
-            models.MedDRACoding.subject.in_(active_subjects)
-        )
-        
-        dirty_who = db.query(models.WHODrugCoding.subject).filter(
-            models.WHODrugCoding.coding_status.ilike('%uncoded%'),
-            models.WHODrugCoding.subject.in_(active_subjects)
-        )
-        
-        dirty_edc = db.query(models.EDCMetrics.subject_id).filter(
-            (models.EDCMetrics.missing_visits > 0) | 
-            (models.EDCMetrics.missing_pages > 0) | 
-            (models.EDCMetrics.total_queries > 0)
-        )
-        
-        # Combine (Union) all dirty subject IDs - Union already handles distinctness
-        dirty_subjects_union = dirty_sae.union(dirty_meddra, dirty_who, dirty_edc)
-        dirty_count = db.query(dirty_subjects_union.subquery()).count()
-        
-        # Clean count is total minus dirty
+        # 2. Count distinct dirty subjects using a single SQL UNION ALL inside a CTE.
+        #    Much faster than 4 separate ORM subqueries joined with .in_() on the full table.
+        dirty_sql = text("""
+            WITH active AS (
+                SELECT DISTINCT subject_id FROM edc_metrics
+            ),
+            dirty AS (
+                -- Dirty EDC: any missing/open query
+                SELECT subject_id AS sid FROM edc_metrics
+                WHERE missing_visits > 0 OR missing_pages > 0 OR total_queries > 0
+                UNION ALL
+                -- Pending SAEs for active subjects
+                SELECT s.patient_id AS sid FROM sae_metrics s
+                INNER JOIN active a ON a.subject_id = s.patient_id
+                WHERE s.review_status != 'Completed'
+                UNION ALL
+                -- Uncoded MedDRA
+                SELECT m.subject AS sid FROM meddra_coding m
+                INNER JOIN active a ON a.subject_id = m.subject
+                WHERE m.coding_status LIKE '%uncoded%'
+                UNION ALL
+                -- Uncoded WHODrug
+                SELECT w.subject AS sid FROM whodrug_coding w
+                INNER JOIN active a ON a.subject_id = w.subject
+                WHERE w.coding_status LIKE '%uncoded%'
+            )
+            SELECT COUNT(DISTINCT sid) AS dirty_count FROM dirty
+            WHERE sid IN (SELECT subject_id FROM active)
+        """)
+
+        row = db.execute(dirty_sql).fetchone()
+        dirty_count = row[0] if row else 0
+
         clean_count = max(0, total_subjects - dirty_count)
         readiness_score = round((clean_count / total_subjects) * 100, 1)
         is_ready = readiness_score >= threshold
-        
-        return {
+
+        result = {
             "total_patients": total_subjects,
             "clean_patients": clean_count,
             "readiness_score": readiness_score,
@@ -306,4 +320,6 @@ class AnalyticsService:
             "threshold": threshold,
             "status_color": "emerald" if is_ready else "amber" if readiness_score > 80 else "rose"
         }
+        _set_cache('study_readiness', result)
+        return result
 

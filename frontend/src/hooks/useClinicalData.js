@@ -1,7 +1,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 
-const BASE_URL = 'http://127.0.0.1:8000';
+const BASE_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
 
 /**
  * Custom hook for centralizing clinical data fetching and state management.
@@ -30,53 +30,64 @@ export const useClinicalData = () => {
     const [lastSync, setLastSync] = useState(localStorage.getItem('last_ingestion_sync') || null);
 
     const fetchOverviewData = useCallback(async () => {
-        try {
-            const [statsRes, riskRes, scoreRes, trendRes, readinessRes] = await Promise.all([
-                fetch(`${BASE_URL}/chat/stats`),
-                fetch(`${BASE_URL}/analytics/risk`),
-                fetch(`${BASE_URL}/analytics/score`),
-                fetch(`${BASE_URL}/analytics/trend`),
-                fetch(`${BASE_URL}/analytics/readiness`)
-            ]);
+        // Fire all requests in parallel but update state individually as each resolves,
+        // so DQI / trend / heatmap appear without waiting for the slower /chat/stats.
+        const safe = (promise) => promise.catch(err => { console.warn('Overview fetch error', err); return null; });
 
-            const [statsJson, riskJson, scoreJson, trendJson, readinessJson] = await Promise.all([
-                statsRes.json(),
-                riskRes.json(),
-                scoreRes.json(),
-                trendRes.json(),
-                readinessRes.json()
-            ]);
-
-            setStats(statsJson.data);
-            setRiskData(riskJson);
-            setScore(scoreJson.score);
-            setTrends(trendJson);
-            setReadiness(readinessJson);
-        } catch (err) {
-            console.error("Overview Fetch Error", err);
-            setError(err);
-        }
+        safe(fetch(`${BASE_URL}/chat/stats`).then(r => r.json())).then(json => {
+            if (json) setStats(json.data);
+        });
+        safe(fetch(`${BASE_URL}/analytics/risk`).then(r => r.json())).then(json => {
+            if (json) setRiskData(json);
+        });
+        safe(fetch(`${BASE_URL}/analytics/score`).then(r => r.json())).then(json => {
+            if (json) setScore(json.score);
+        });
+        safe(fetch(`${BASE_URL}/analytics/trend`).then(r => r.json())).then(json => {
+            if (json) setTrends(json);
+        });
+        safe(fetch(`${BASE_URL}/analytics/readiness`).then(r => r.json())).then(json => {
+            if (json) setReadiness(json);
+        });
     }, []);
 
     const fetchRiskMonitorData = useCallback(async () => {
-        setLoading(true);
-        try {
-            const [riskRes, readinessRes] = await Promise.all([
-                fetch(`${BASE_URL}/analytics/risk-monitor`),
-                fetch(`${BASE_URL}/analytics/readiness`)
-            ]);
+        // Only show loading spinner on first load — avoids flash when navigating back.
+        setRiskData(current => {
+            if (current.length === 0) setLoading(true);
+            return current;
+        });
 
-            const riskData = await riskRes.json();
-            const readinessData = await readinessRes.json();
+        // Fire both fetches in parallel but update state independently as each resolves.
+        // This way the risk grid appears even if /readiness is slow, and vice versa.
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 30000); // 30s hard timeout
 
-            setRiskData(riskData);
-            setReadiness(readinessData);
-        } catch (err) {
-            console.error("Risk Monitor Fetch Error", err);
-            setError(err);
-        } finally {
+        const safe = (promise) => promise.catch(err => {
+            console.warn('Risk Monitor fetch error:', err.message);
+            return null;
+        });
+
+        safe(
+            fetch(`${BASE_URL}/analytics/risk-monitor`, { signal: controller.signal })
+                .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
+        ).then(json => {
+            if (json) setRiskData(json);
             setLoading(false);
-        }
+        });
+
+        safe(
+            fetch(`${BASE_URL}/analytics/readiness`, { signal: controller.signal })
+                .then(r => r.json())
+        ).then(json => {
+            if (json) setReadiness(json);
+        });
+
+        // Clear timeout once both are done (approximate — clears after 30s max)
+        Promise.allSettled([
+            fetch(`${BASE_URL}/analytics/risk-monitor`).catch(() => {}),
+            fetch(`${BASE_URL}/analytics/readiness`).catch(() => {})
+        ]).finally(() => clearTimeout(timeout));
     }, []);
 
     const fetchMLStatus = useCallback(async () => {

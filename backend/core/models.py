@@ -14,7 +14,7 @@ class SAEMetrics(Base):
     country = Column(String)
     site = Column(String, index=True)
     patient_id = Column(String, index=True)
-    review_status = Column(String)
+    review_status = Column(String, index=True)
     action_status = Column(String)
     # SAE Dashboard tracking fields
     discrepancy_id = Column(String)
@@ -195,7 +195,7 @@ class MedDRACoding(Base):
     logline = Column(String)
     field_oid = Column(String)
     supplement_term = Column(String)
-    coding_status = Column(String)
+    coding_status = Column(String, index=True)
     require_coding = Column(String)
 
 class WHODrugCoding(Base):
@@ -209,5 +209,6 @@ class WHODrugCoding(Base):
     logline = Column(String)
     field_oid = Column(String)
     trade_name = Column(String)
-    coding_status = Column(String)
+    coding_status = Column(String, index=True)
     require_coding = Column(String)
+

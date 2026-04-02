@@ -1,10 +1,13 @@
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 from typing import List, Optional
+import time
 from core.deps import get_db, get_current_user
 from services.risk_monitor_service import RiskMonitorService
 from services.analytics_service import AnalyticsService
 from services.ml_service_risk import MLRiskService
+
+# Router-level cache has been moved to services to support background warming.
 
 # Try importing advanced ML service
 try:
@@ -17,6 +20,10 @@ router = APIRouter(prefix="/analytics", tags=["Risk & Analytics"])
 
 @router.get("/risk")
 def get_risk_heatmap(db: Session = Depends(get_db)):
+    """
+    Get aggregated risk data for the geographic heatmap.
+    Returns site risk scores mapped to country/region.
+    """
     return RiskMonitorService.get_risk_heatmap_data(db)
 
 @router.get("/score")
@@ -26,10 +33,18 @@ def get_study_score(db: Session = Depends(get_db), user: dict = Depends(get_curr
 
 @router.get("/trend")
 def get_trends(db: Session = Depends(get_db)):
+    """
+    Get 6-month trend data for SAEs and Queries.
+    Used for the 'Velocity Trends' widget on the Dashboard.
+    """
     return AnalyticsService.get_sae_trend(db)
 
 @router.get("/risk-monitor")
 def get_risk_monitor(db: Session = Depends(get_db)):
+    """
+    Get detailed risk metrics for the main surveillance grid.
+    Combines Heuristic Risk, ML Prediction, and Operational Metrics.
+    """
     return RiskMonitorService.get_detailed_risk_data(db)
 
 @router.get("/ml-status")

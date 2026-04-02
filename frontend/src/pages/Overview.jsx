@@ -164,7 +164,7 @@ const Overview = ({ searchQuery }) => {
   }, [fetchOverviewData]);
 
   const getValue = (name) => {
-    if (!stats) return '...';
+    if (!stats) return <span className="inline-block w-16 h-7 bg-slate-200 dark:bg-slate-700 rounded animate-pulse align-middle" />;
     const item = stats.find(s => s.Metric === name);
     return item ? item.Value : 0;
   }
