@@ -32,7 +32,7 @@ async def lifespan(app: FastAPI):
     # ── Startup: pre-load ML model ──
     try:
         from services.ml_service_risk import MLRiskService
-        MLRiskService.load_model()
+        #MLRiskService.load_model()
         print("✅ ML model pre-loaded at startup")
     except Exception as e:
         print(f"⚠️  ML model pre-load failed: {e}")
